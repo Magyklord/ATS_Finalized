@@ -34,24 +34,23 @@ if not defined JAVA_FOUND (
     exit /b 1
 )
 
-:: 2. Check Database Configuration
-set "SPRING_ARGS="
-netstat -ano | findstr :5432 >nul 2>&1
-if errorlevel 1 (
-    echo [DATABASE] PostgreSQL not detected on port 5432.
-    echo [DATABASE] Using built-in H2 database in PostgreSQL compatibility mode.
-    echo [DATABASE] System will run with full functionality with zero manual DB setup!
-    set "SPRING_ARGS=-Dspring-boot.run.arguments=--spring.profiles.active=h2"
-) else (
-    echo [DATABASE] PostgreSQL detected on port 5432.
-    if "%DB_PASSWORD%"=="" (
-        set /p DB_PASSWORD="Enter PostgreSQL password - press Enter for default 'varun2006': "
-    )
+:: 2. Choose Database Mode
+echo ----------------------------------------------------------------------
+echo Select Database Mode:
+echo   [1] In-Memory Database H2 : Works instantly on ANY computer, ZERO setup!
+echo   [2] PostgreSQL Database   : Connects to PostgreSQL on port 5432
+echo ----------------------------------------------------------------------
+set "DB_CHOICE=1"
+set /p DB_CHOICE=Enter choice 1 or 2 [default 1]: 
+if "%DB_CHOICE%"=="2" (
+    echo [DATABASE] Mode: PostgreSQL Database
+    set "SPRING_PROFILES_ACTIVE=default"
+    if "%DB_PASSWORD%"=="" set /p DB_PASSWORD=Enter PostgreSQL password [default varun2006]: 
     if "%DB_PASSWORD%"=="" set "DB_PASSWORD=varun2006"
-    where psql >nul 2>&1
-    if not errorlevel 1 (
-        psql -U postgres -c "CREATE DATABASE recruitment_db;" >nul 2>&1
-    )
+    where psql >nul 2>&1 && psql -U postgres -c "CREATE DATABASE recruitment_db;" >nul 2>&1
+) else (
+    echo [DATABASE] Mode: In-Memory Database H2 -- no PostgreSQL needed!
+    set "SPRING_PROFILES_ACTIVE=h2"
 )
 
 :: 3. Setup Python venv if missing
@@ -79,7 +78,7 @@ echo [1/3] Starting Python AI Microservice on Port 8001...
 start "FacultyHire - Python AI Service" cmd /k "cd /d "%ROOT_DIR%ai-service" && .venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8001 --reload"
 
 echo [2/3] Starting Java Spring Boot Backend on Port 8080...
-start "FacultyHire - Java Backend" cmd /k "cd /d "%ROOT_DIR%" && if defined JAVA_HOME (set "PATH=%JAVA_HOME%\bin;%PATH%") && set "DB_PASSWORD=%DB_PASSWORD%" && call mvnw.cmd spring-boot:run %SPRING_ARGS%"
+start "FacultyHire - Java Backend" cmd /k "cd /d "%ROOT_DIR%" && if defined JAVA_HOME (set "PATH=%JAVA_HOME%\bin;%PATH%") && set "SPRING_PROFILES_ACTIVE=%SPRING_PROFILES_ACTIVE%" && set "DB_PASSWORD=%DB_PASSWORD%" && call mvnw.cmd spring-boot:run"
 
 echo [3/3] Starting React + Vite Frontend on Port 5173...
 start "FacultyHire - React Frontend" cmd /k "cd /d "%ROOT_DIR%frontend" && call npm run dev"

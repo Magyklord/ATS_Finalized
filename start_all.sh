@@ -6,11 +6,18 @@
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR" || exit 1
 
-SPRING_ARGS=""
-if nc -z 127.0.0.1 5432 2>/dev/null; then
-    echo "[DATABASE] PostgreSQL detected on port 5432."
+echo "----------------------------------------------------------------------"
+echo "Select Database Mode:"
+echo "  [1] In-Memory Database (H2) - Works instantly on ANY computer, ZERO setup!"
+echo "  [2] PostgreSQL Database     - Connects to PostgreSQL on port 5432"
+echo "----------------------------------------------------------------------"
+read -rp "Enter choice [1 or 2, default is 1]: " DB_CHOICE
+
+if [ "$DB_CHOICE" == "2" ]; then
+    echo "[DATABASE] Mode: PostgreSQL Database"
+    export SPRING_PROFILES_ACTIVE="default"
     if [ -z "$DB_PASSWORD" ]; then
-        read -rsp "Enter PostgreSQL password for user 'postgres' (press Enter for 'varun2006'): " DB_PASSWORD
+        read -rsp "Enter PostgreSQL password [default 'varun2006']: " DB_PASSWORD
         echo ""
         if [ -z "$DB_PASSWORD" ]; then
             DB_PASSWORD="varun2006"
@@ -18,9 +25,8 @@ if nc -z 127.0.0.1 5432 2>/dev/null; then
         export DB_PASSWORD
     fi
 else
-    echo "[DATABASE] PostgreSQL not detected on port 5432."
-    echo "[DATABASE] Automatically using built-in H2 database (PostgreSQL mode)."
-    SPRING_ARGS="-Dspring-boot.run.arguments=--spring.profiles.active=h2"
+    echo "[DATABASE] Mode: In-Memory Database (H2) - no PostgreSQL needed!"
+    export SPRING_PROFILES_ACTIVE="h2"
 fi
 
 # Setup Python venv if missing
@@ -43,7 +49,7 @@ if [ ! -d "$ROOT_DIR/frontend/node_modules" ]; then
 fi
 
 echo ""
-echo "[1/3] Starting Python AI Microservice (Port 8001)..."
+echo "[1/3] Starting Python AI Microservice on Port 8001..."
 (
     cd "$ROOT_DIR/ai-service" || exit 1
     if [ -f "./.venv/bin/python" ]; then
@@ -53,13 +59,13 @@ echo "[1/3] Starting Python AI Microservice (Port 8001)..."
     fi
 ) &
 
-echo "[2/3] Starting Java Spring Boot Backend (Port 8080)..."
+echo "[2/3] Starting Java Spring Boot Backend on Port 8080..."
 (
     cd "$ROOT_DIR" || exit 1
-    ./mvnw spring-boot:run $SPRING_ARGS
+    ./mvnw spring-boot:run
 ) &
 
-echo "[3/3] Starting React + Vite Frontend (Port 5173)..."
+echo "[3/3] Starting React + Vite Frontend on Port 5173..."
 (
     cd "$ROOT_DIR/frontend" || exit 1
     npm run dev
@@ -73,7 +79,7 @@ echo "  - Java Spring Boot Backend              : http://127.0.0.1:8080"
 echo "  - React Web Portal                      : http://localhost:5173"
 echo "======================================================================"
 
-sleep 5
+sleep 4
 if command -v xdg-open > /dev/null; then
     xdg-open http://localhost:5173
 elif command -v open > /dev/null; then
