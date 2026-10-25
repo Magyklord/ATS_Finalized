@@ -890,3 +890,139 @@ button:focus-visible {
 }
 
 
+
+
+/* ---------- AI Screening Styles ---------- */
+
+.screening-results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin-top: 24px;
+}
+
+.score-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e3a63 0%, #2a4f82 100%);
+  color: #fff;
+}
+
+.score-banner-left h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  color: #fff;
+}
+
+.score-banner-left p {
+  margin: 0;
+  color: #c3d5ee;
+  font-size: 13px;
+}
+
+.score-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.score-circle span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #c3d5ee;
+  margin-top: 4px;
+}
+
+.skills-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.skill-tag.matched {
+  background: #e6f6ee;
+  color: #176f45;
+  border: 1px solid #b7e8d0;
+}
+
+.skill-tag.missing {
+  background: #fdf0f0;
+  color: #a82727;
+  border: 1px solid #f6caca;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.profile-card {
+  padding: 16px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.profile-card h4 {
+  margin: 0 0 8px;
+  color: #243a5a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.evidence-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.evidence-table th {
+  padding: 10px 14px;
+  background: #f1f5fa;
+  color: #4a5d78;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.evidence-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 12px;
+  line-height: 1.5;
+  vertical-align: top;
+}
+
+.evidence-quote {
+  font-style: italic;
+  color: #3b506f;
+  background: #edf3fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
