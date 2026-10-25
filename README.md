@@ -1,247 +1,251 @@
-# Agentic AI-Based Recruitment and Resume Shortlisting System
+# Agentic AI-Based Recruitment and Resume Shortlisting System (FacultyHire)
 
-An AI-assisted recruitment platform designed to support university faculty recruitment by organizing job postings, candidate applications, resumes, and screening results in one system.
+An enterprise-grade, multi-agent AI-assisted recruitment platform designed for university faculty hiring. The system streamlines job postings, candidate registration, batch resume screening, and LLM-powered evaluation with strict criteria analysis, evidence extraction, and database persistence.
 
-## 1. Project Overview
+---
 
-The project aims to streamline the initial recruitment and resume-shortlisting process. Recruiters can create job postings, register candidates, upload resumes, and review screening results.
+## 1. System Overview
 
-The planned AI component will analyze resumes against job requirements and provide match scores, matched skills, supporting evidence, and explanations to help recruiters evaluate candidates.
+FacultyHire combines a modern **React + Vite** frontend, a robust **Java Spring Boot** system of record, and a high-performance **Python FastAPI + LangGraph** multi-agent AI microservice.
 
-**Important:** AI screening is intended to support human decision-making. Final recruitment and shortlisting decisions remain with the authorized recruiter or recruitment committee.
+### Key Capabilities
+- **Job Management:** Create, view, update, and manage faculty job postings with pure numeric identifiers (`1`, `2`, `3`) mapped directly to database records.
+- **Candidate Registry:** Register applicants, track recruitment status (`APPLIED`, `SHORTLISTED`, `REJECTED`, `INTERVIEW`), and view associated resumes.
+- **Single Resume Screening:** Upload individual PDF or DOCX resumes against any job posting for instant AI-driven evaluation.
+- **Batch ZIP Upload & Screening:** Upload a `.zip` archive containing multiple candidate resumes. The system automatically unzips, parses, queues, and enables one-by-one or automated batch screening across all candidates.
+- **LangGraph Multi-Agent Architecture:** Utilizes a 4-agent state graph pipeline (Profile Extractor $\rightarrow$ Criteria Analyzer $\rightarrow$ Evidence Evaluator $\rightarrow$ Scoring Synthesis) with strict JSON schema validation and deterministic scoring.
+- **1-Click Database Persistence:** Synchronize AI screening results and candidate records straight into PostgreSQL via the Java backend with a single click.
+- **White-Labeled Enterprise UI:** Clean, modern interface without third-party vendor watermarks or external AI branding.
+
+---
 
 ## 2. Technology Stack
 
-| Component | Technology |
+| Layer | Technologies |
 |---|---|
-| Frontend | React, JavaScript, HTML, CSS |
-| Frontend tooling | Vite |
-| Backend | Java, Spring Boot |
-| REST APIs | Spring Web |
-| Database access | Spring Data JPA, Hibernate |
-| Database | PostgreSQL |
-| Validation | Jakarta Bean Validation |
-| Build tool | Maven |
-| AI service | Python, FastAPI (planned integration) |
-| Version control | Git and GitHub |
+| **Frontend** | React 18, Vite, Lucide Icons, Modern CSS3 |
+| **Main Backend** | Java 17+, Spring Boot 3.x, Spring Data JPA, Hibernate, Maven |
+| **Database** | PostgreSQL |
+| **AI Microservice** | Python 3.10+, FastAPI, Uvicorn, LangChain, LangGraph, Groq SDK, PyMuPDF, python-docx, Pydantic v2 |
+| **Testing** | Pytest, Mocking, Spring Boot Test |
 
-## 3. Application Architecture
+---
 
-The application is designed around three components:
-
-1. **React frontend:** Provides the user interface for managing jobs and candidates and viewing recruitment information.
-2. **Spring Boot backend:** Exposes REST APIs, manages recruitment data, handles resume uploads, and stores screening results.
-3. **Python AI service:** Intended to analyze resume content and return structured screening information to the backend.
-
-PostgreSQL stores the application's structured data. Resume files are stored in the backend's local upload directory, while resume metadata is stored in the database.
-
-The Java-to-Python integration and end-to-end AI screening workflow are still under development.
-
-## 4. Backend Structure — `recruitment-system/`
-
-The backend is a Maven-based Spring Boot application.
+## 3. Project Structure
 
 ```text
-recruitment-system/
-├── pom.xml
-├── .gitignore
-└── src/
-    └── main/
-        ├── java/
-        │   └── com/recruitment/recruitment_system/
-        │       ├── job/
-        │       ├── candidate/
-        │       ├── resume/
-        │       ├── screening/
-        │       └── [application entry point]
-        └── resources/
-            └── application.properties
+AI_RecruitmentService/
+├── start_all.bat                           # 1-Click launcher for Windows
+├── start_all.sh                            # 1-Click launcher for Linux/macOS
+├── pom.xml                                 # Java Spring Boot Maven configuration
+├── mvnw / mvnw.cmd                         # Maven wrappers
+├── src/                                    # Java Spring Boot application source
+│   ├── main/java/com/recruitment/recruitment_system/
+│   │   ├── candidate/                      # Candidate entity, repository, service, controller
+│   │   ├── job/                            # Job entity, repository, service, controller
+│   │   ├── resume/                         # Resume storage & metadata management
+│   │   ├── screening/                      # Screening result persistence
+│   │   └── RecruitmentSystemApplication.java
+│   └── main/resources/
+│       └── application.properties          # Spring Boot database & server settings
+├── AI ATS frontend/recruitment-frontend/    # React + Vite frontend
+│   ├── src/
+│   │   ├── App.jsx                         # Main UI (Dashboard, Jobs, Candidates, AI Screening)
+│   │   ├── App.css                         # Enterprise styling & responsive layout
+│   │   └── main.jsx
+│   ├── vite.config.js                      # Reverse proxies for /api (Java) & /api/v1 (Python)
+│   └── package.json
+└── ATS Final Project/backend/              # Python FastAPI AI Microservice
+    ├── agents/
+    │   ├── multi_agent_graph.py            # LangGraph 4-agent state machine
+    │   └── screening_agent.py              # LLM client, structured outputs & fallbacks
+    ├── routers/
+    │   └── resumes.py                      # Single, batch ZIP, and direct text screening endpoints
+    ├── schemas/
+    │   └── resumes.py                      # Pydantic schemas (ScreeningResultResponse, etc.)
+    ├── services/
+    │   └── document_phaser.py              # PDF (PyMuPDF) and DOCX (python-docx) extraction
+    ├── tests/                              # Pytest test suite (18 unit & integration tests)
+    ├── main.py                             # FastAPI application entry point
+    ├── requirements.txt                    # Python dependencies
+    └── .env.example                        # Template for environment variables
 ```
 
-The package names above illustrate the main functional modules; exact filenames and subpackages may vary in the current codebase.
+---
 
-### Main backend files and responsibilities
+## 4. Quick Start (One-Click Launcher)
 
-**Application entry point**
-- Starts the Spring Boot application.
-- Initializes the application context and configured components.
+### Windows
+Double-click `start_all.bat` or run it from Command Prompt:
 
-**Job module**
-- `Job.java` — Represents a job posting, including its title, department, and description.
-- `JobRepository.java` — Provides database access for job records.
-- `JobService.java` — Contains job-management business logic.
-- `JobController.java` — Exposes REST endpoints for creating, retrieving, updating, and deleting jobs.
-
-**Candidate module**
-- `Candidate.java` — Represents a candidate and their contact information, with an association to a job.
-- `CandidateRepository.java` — Provides database access for candidate records.
-- `CandidateService.java` — Handles candidate-related business logic.
-- `CandidateController.java` — Exposes endpoints for creating and retrieving candidates.
-
-**Resume module**
-- `Resume.java` — Stores resume metadata, such as the original filename, storage path, content type, processing status, upload time, and associated candidate.
-- `ResumeStatus.java` — Defines resume-processing states: `UPLOADED`, `PROCESSING`, `COMPLETED`, and `FAILED`.
-- Resume service and controller classes — Validate supported PDF/DOCX uploads, store files, save metadata, and expose resume-related endpoints.
-
-**Screening module**
-- `ScreeningResult.java` — Represents a screening result, including the match score, matched skills, evidence, explanation, screening time, and associated resume.
-- `ScreeningResultRepository.java` — Provides database access for screening results.
-- `ScreeningResultService.java` — Handles screening-result operations and validation.
-- `ScreeningResultController.java` — Exposes endpoints to create and retrieve screening results.
-
-**`application.properties`**
-- Configures the Spring application and PostgreSQL connection.
-- Uses the `DB_PASSWORD` environment variable for the database password.
-- Local configuration must not contain committed credentials.
-
-**`pom.xml`**
-- Defines the Maven project, Java version, dependencies, and build configuration.
-
-**`.gitignore`**
-- Excludes generated build output, IDE files, local secrets, logs, and uploaded resume files from Git.
-
-## 5. Frontend Structure — `recruitment-frontend/`
-
-The frontend is built with React and Vite.
-
-```text
-recruitment-frontend/
-├── package.json
-├── vite.config.js
-├── index.html
-└── src/
-    ├── App.jsx
-    ├── App.css
-    └── index.css
+```cmd
+start_all.bat
 ```
 
-### Main frontend files
+The script will:
+1. Prompt for your PostgreSQL password (if not already set in `DB_PASSWORD`).
+2. Launch the **Python AI Microservice** on `http://127.0.0.1:8001` in its own terminal.
+3. Launch the **Java Spring Boot Backend** on `http://localhost:8080` in its own terminal.
+4. Launch the **React Vite Frontend** on `http://localhost:5173` in its own terminal.
+5. Automatically open `http://localhost:5173` in your default browser.
 
-- `src/App.jsx` — Contains the main application layout, navigation, dashboard, job-management page, candidate-management page, and AI-screening placeholder.
-- `src/App.css` — Defines application-specific styling, including the sidebar, dashboard, forms, tables, and page layouts.
-- `src/index.css` — Provides global CSS rules and base styling.
-- `vite.config.js` — Configures Vite and proxies frontend `/api` requests to the Spring Boot backend running locally on port `8080`.
-- `package.json` — Defines frontend dependencies and development scripts.
-- `index.html` — Provides the HTML entry point for the React application.
-
-The current frontend supports listing and creating jobs and candidates. Resume-upload controls and the complete screening-results interface remain to be implemented.
-
-## 6. Current REST API Endpoints
-
-The backend currently exposes the following endpoints.
-
-### Jobs
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| POST | `/api/jobs` | Create a job |
-| GET | `/api/jobs` | Retrieve all jobs |
-| GET | `/api/jobs/{id}` | Retrieve a job by ID |
-| PUT | `/api/jobs/{id}` | Update a job |
-| DELETE | `/api/jobs/{id}` | Delete a job |
-
-### Candidates
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| POST | `/api/candidates/jobs/{jobId}` | Create a candidate associated with a job |
-| GET | `/api/candidates` | Retrieve candidates |
-| GET | `/api/candidates/{id}` | Retrieve a candidate by ID |
-
-### Resumes
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| POST | `/api/candidates/{candidateId}/resume` | Upload a resume using multipart form data with the field name `file` |
-| GET | `/api/resumes/{id}` | Retrieve resume metadata |
-
-### Screening results
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| POST | `/api/screening-results/resumes/{resumeId}` | Create a screening result for a resume |
-| GET | `/api/screening-results` | Retrieve screening results |
-| GET | `/api/screening-results/resumes/{resumeId}` | Retrieve screening results for a resume |
-
-The screening-result API is implemented, but integration with the Python AI service is not yet complete. Check the current controller implementation for exact request and response formats.
-
-## 7. Local Setup
-
-### Prerequisites
-
-- Java version compatible with the backend project
-- Maven, or the included Maven wrapper if available
-- Node.js and npm
-- PostgreSQL
-- IntelliJ IDEA or another suitable IDE
-
-### Start the backend
-
-1. Create a PostgreSQL database named `recruitment_db`.
-2. Configure the PostgreSQL username and database URL in `application.properties`.
-3. Set the `DB_PASSWORD` environment variable in your run configuration.
-4. From the backend directory, run:
-
+### Linux / macOS
 ```bash
-./mvnw spring-boot:run
+chmod +x start_all.sh
+./start_all.sh
 ```
 
-On Windows, use `mvnw.cmd spring-boot:run` if the Maven wrapper is available. Otherwise, run the application through IntelliJ or use an installed Maven version.
+---
 
-The backend is configured to run locally on port `8080` unless changed.
+## 5. Manual Setup & Execution
 
-### Start the frontend
+If you prefer running services individually or in development mode, follow these steps:
 
-From the frontend directory, run:
+### Step 1: PostgreSQL Database Setup
+1. Ensure PostgreSQL is installed and running.
+2. Create a database named `recruitment_db`:
+   ```sql
+   CREATE DATABASE recruitment_db;
+   ```
+3. Set your PostgreSQL password environment variable:
+   - **Windows (CMD):** `set DB_PASSWORD=your_password`
+   - **Windows (PowerShell):** `$env:DB_PASSWORD="your_password"`
+   - **Linux/macOS:** `export DB_PASSWORD=your_password`
 
+### Step 2: Python AI Microservice (Port 8001)
+1. Navigate to the Python backend directory:
+   ```bash
+   cd "ATS Final Project/backend"
+   ```
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   # Windows:
+   .\.venv\Scripts\activate
+   # Linux/macOS:
+   source .venv/bin/activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Configure `.env`:
+   Create a `.env` file in `ATS Final Project/backend/`:
+   ```dotenv
+   GROQ_API_KEY=your_groq_api_key_here
+   GROQ_MODEL=openai/gpt-oss-20b
+   ```
+   *(Supported models include `openai/gpt-oss-20b`, `llama-3.3-70b-versatile`, `mixtral-8x7b-32768`)*
+5. Start the FastAPI server:
+   ```bash
+   python -m uvicorn main:app --host 127.0.0.1 --port 8001 --reload
+   ```
+   - Swagger Documentation: `http://127.0.0.1:8001/docs`
+   - Health Check: `http://127.0.0.1:8001/health`
+
+### Step 3: Java Spring Boot Backend (Port 8080)
+1. From the project root (`AI_RecruitmentService/`):
+   ```bash
+   # Windows:
+   mvnw.cmd spring-boot:run
+   # Linux/macOS:
+   ./mvnw spring-boot:run
+   ```
+2. The server initializes JPA schema and starts on `http://localhost:8080`.
+
+### Step 4: React Frontend (Port 5173)
+1. Navigate to the frontend directory:
+   ```bash
+   cd "AI ATS frontend/recruitment-frontend"
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+4. Access the web application at `http://localhost:5173`.
+
+---
+
+## 6. Multi-Agent AI Screening Architecture
+
+FacultyHire replaces simple single-prompt completions with a specialized **LangGraph 4-Agent State Machine**:
+
+```mermaid
+flowchart LR
+    A["Raw Resume (PDF/DOCX)"] --> B["Profile Extractor Agent"]
+    B --> C["Criteria Analyzer Agent"]
+    C --> D["Evidence Evaluator Agent"]
+    D --> E["Scoring & Synthesis Agent"]
+    E --> F["Validated Screening Result (JSON)"]
+```
+
+1. **Profile Extractor Agent:** Extracts structured applicant information (name, contact, education, degrees, years of academic/industry experience, domain specializations).
+2. **Criteria Analyzer Agent:** Compares candidate qualifications against the job description and required skills, classifying skills into `matched_skills` and `missing_skills`.
+3. **Evidence Evaluator Agent:** Gathers direct citations, project references, and publication excerpts from the resume that validate claimed competencies.
+4. **Scoring & Synthesis Agent:** Computes a calibrated match score ($0-100\%$), provides an executive hiring summary, and flags key strengths and risks.
+
+### Robust Fallback System
+The microservice enforces strict JSON schemas:
+- Primary: Groq strict `json_schema` mode.
+- Secondary Fallback: Standard `json_object` mode with Pydantic runtime validation.
+- Tertiary Fallback: Zero-shot regex extraction to recover from malformed JSON responses without failing the request.
+
+---
+
+## 7. REST API Reference
+
+### Python AI Microservice (Port 8001)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Health check endpoint returning service and model status |
+| `POST` | `/api/v1/screen-resume` | Screen a single resume (`multipart/form-data`: `file`, `job_id`, `job_title`, `job_description`, `required_skills`) |
+| `POST` | `/api/v1/screen-resume/upload-zip` | Upload a `.zip` archive containing multiple resumes; unpacks and returns candidate list |
+| `POST` | `/api/v1/screen-resume/screen-text` | Screen extracted text directly using numeric `job_id` |
+
+### Java Spring Boot Backend (Port 8080)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/jobs` | Create a new job posting |
+| `GET` | `/api/jobs` | List all job postings |
+| `GET` | `/api/jobs/{id}` | Get job details by numeric ID |
+| `PUT` | `/api/jobs/{id}` | Update an existing job posting |
+| `DELETE` | `/api/jobs/{id}` | Remove a job posting |
+| `POST` | `/api/candidates/jobs/{jobId}` | Register a candidate under a specific numeric job ID |
+| `GET` | `/api/candidates` | List all candidates across jobs |
+| `GET` | `/api/candidates/{id}` | Get candidate details by ID |
+| `POST` | `/api/candidates/{candidateId}/resume` | Store resume file and create resume metadata record |
+| `GET` | `/api/resumes/{id}` | Retrieve resume metadata |
+| `POST` | `/api/screening-results/resumes/{resumeId}` | Persist AI screening score, skills, and evidence |
+| `GET` | `/api/screening-results` | List all saved screening results |
+| `GET` | `/api/screening-results/resumes/{resumeId}` | Retrieve screening result for a given resume |
+
+---
+
+## 8. Verification & Automated Testing
+
+The Python AI service includes comprehensive automated test coverage for health checks, document parsing, provider errors, and schema compatibility.
+
+To run the automated tests:
 ```bash
-npm install
-npm run dev
+cd "ATS Final Project/backend"
+python -m pytest -v
 ```
 
-Vite typically starts the frontend at:
+### Test Suite Summary (18 Passed)
+- `test_health.py` (3 tests): Service health, missing API key handling, and invalid model name handling.
+- `test_document_phaser.py` (7 tests): PDF extraction, DOCX extraction, empty file rejection, invalid extension rejection, corrupt file error handling, Windows file-lock cleanup, and newline preservation.
+- `test_screening.py` (8 tests): Single screening mocked pipeline, batch ZIP upload, direct text screening, rate-limit 429 handling, network timeout 504 handling, malformed JSON recovery, and Pydantic schema validation.
 
-`http://localhost:5173`
+---
 
-The Vite development proxy forwards `/api` requests to the backend at `http://localhost:8080`.
+## 9. Security & Compliance
 
-## 8. AI Service Integration
-
-The planned Python service will be responsible for AI-assisted resume analysis. Its interface should be agreed upon by the frontend/backend and AI-service developers before integration.
-
-The expected screening information includes:
-
-- Match score
-- Matched skills
-- Supporting evidence from the resume
-- Explanation of the match
-
-The team should define a consistent request/response schema, error-handling behavior, and processing-status updates before connecting the AI service to the Java backend.
-
-## 9. Security and Privacy
-
-- Do not commit database passwords, API keys, tokens, or other secrets.
-- Keep `DB_PASSWORD` in a local environment or run configuration.
-- Do not commit uploaded resumes or other candidate documents.
-- Treat resumes and candidate contact information as confidential personal data.
-- Restrict access to candidate information and screening results appropriately.
-- AI-generated scores and explanations should be reviewed by a human; they should not automatically determine hiring outcomes.
-
-## 10. Development Status
-
-- Job-management APIs: implemented.
-- Candidate-management APIs: implemented.
-- Resume upload and metadata storage: implemented in the backend.
-- Screening-result storage and retrieval APIs: implemented.
-- React job and candidate pages: implemented.
-- Resume-upload frontend: pending.
-- Python AI service integration: pending.
-- Complete AI-screening results interface: pending.
-
-This README describes the project at its current development stage and should be updated as the implementation evolves.
-
-## 11. Team Collaboration
-
-The project uses a modular architecture so the frontend, Java backend, and Python AI service can be developed independently against agreed API contracts.
-
-Before integrating new components, document the expected endpoint paths, request formats, response fields, error responses, and processing states so that all components remain compatible.
+- **Credentials:** Never commit `.env` or database passwords. Keep `GROQ_API_KEY` and `DB_PASSWORD` in your local environment.
+- **Data Privacy:** Resume documents contain personal identifiable information (PII). Ensure uploaded files and database backups are stored securely with restricted access.
+- **Human-in-the-Loop:** AI screening results provide advisory ranking and matching metrics. Final hiring decisions rest with authorized department chairs and recruitment committees.
