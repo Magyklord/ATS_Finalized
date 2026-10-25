@@ -1,16 +1,38 @@
-# React + Vite
+# FacultyHire Recruitment Portal Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Modern React 18 + Vite frontend for managing faculty job postings, candidate registries, and AI resume screening.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 1. Quick Start
 
-## React Compiler
+### Step 1: Install Dependencies
+From the repository root or from this directory:
+```bash
+npm install
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Step 2: Start the Development Server
+```bash
+npm run dev
+```
 
-## Expanding the ESLint configuration
+The web application will start at `http://localhost:5173`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## 2. API Proxy Routing
+
+Vite automatically proxies backend API requests:
+- `/api` $\rightarrow$ `http://127.0.0.1:8080` (Java Spring Boot Backend)
+- `/api/v1` $\rightarrow$ `http://127.0.0.1:8001` (Python FastAPI AI Microservice)
+
+---
+
+## 3. Features
+- **Job Management:** Create, view, update, and manage faculty job postings with numeric IDs.
+- **Candidate Management:** Register candidates and track interview and shortlisting statuses.
+- **Single Resume Screening:** Upload PDF or DOCX resumes and view real-time score, skills, and evidence.
+- **Batch ZIP Upload & Queue:** Upload a `.zip` file of multiple resumes and screen all candidates simultaneously or individually.
+- **1-Click Registration:** Save screening results and candidate records straight into PostgreSQL via the Java backend.
+- **White-Labeled Enterprise UI:** Clean corporate branding without vendor watermarks.
