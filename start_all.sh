@@ -7,8 +7,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR" || exit 1
 
 if [ -z "$DB_PASSWORD" ]; then
-    read -rsp "Enter PostgreSQL password for user 'postgres' (press Enter if blank): " DB_PASSWORD
+    read -rsp "Enter PostgreSQL password for user 'postgres' (press Enter for 'varun2006'): " DB_PASSWORD
     echo ""
+    if [ -z "$DB_PASSWORD" ]; then
+        DB_PASSWORD="varun2006"
+    fi
     export DB_PASSWORD
 fi
 
@@ -43,7 +46,7 @@ echo "  - Java Spring Boot Backend              : http://localhost:8080"
 echo "  - React Web Portal                      : http://localhost:5173"
 echo "======================================================================"
 
-sleep 4
+sleep 5
 if command -v xdg-open > /dev/null; then
     xdg-open http://localhost:5173
 elif command -v open > /dev/null; then
