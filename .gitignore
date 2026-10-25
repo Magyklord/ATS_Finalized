@@ -49,3 +49,7 @@ uploads/
 
 # Logs
 *.log
+
+# Frontend dependencies & build artifacts
+node_modules/
+dist/

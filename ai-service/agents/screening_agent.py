@@ -9,9 +9,10 @@ from pydantic import ValidationError
 from schemas.resumes import ScreeningResult
 from agents.multi_agent_graph import run_multi_agent_screening
 
-# Ensure .env is loaded from backend directory
+# Ensure .env is loaded from ai-service directory or project root
 backend_dir = Path(__file__).resolve().parent.parent
 load_dotenv(backend_dir / ".env")
+load_dotenv(backend_dir.parent / ".env")
 
 logger = logging.getLogger(__name__)
 

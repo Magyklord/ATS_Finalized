@@ -3,9 +3,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
-# Load .env from backend project directory reliably regardless of cwd
+# Load .env from ai-service directory or project root directory reliably regardless of cwd
 backend_dir = Path(__file__).resolve().parent
 load_dotenv(backend_dir / ".env")
+load_dotenv(backend_dir.parent / ".env")
 
 from fastapi.middleware.cors import CORSMiddleware
 from routers.resumes import router as resumes_router

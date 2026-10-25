@@ -1,93 +1,83 @@
 # Agentic AI-Based Recruitment and Resume Shortlisting System (FacultyHire)
 
-An enterprise-grade, multi-agent AI-assisted recruitment platform designed for university faculty hiring. The system streamlines job postings, candidate registration, batch resume screening, and LLM-powered evaluation with strict criteria analysis, evidence extraction, and database persistence.
+An enterprise-grade, multi-agent AI-assisted recruitment platform designed for university faculty hiring. The system features:
+- **Java Spring Boot System of Record:** Permanent database persistence, candidate registry, and job management.
+- **Python FastAPI + LangGraph Multi-Agent AI Microservice:** Autonomous 4-agent resume evaluation pipeline with strict JSON schema validation.
+- **React 18 + Vite Frontend Portal:** Batch ZIP resume uploads, single candidate screening, queue orchestration, and 1-click database registration.
+- **Zero-Friction Portability:** Runs seamlessly on any Windows, macOS, or Linux device. If PostgreSQL is running, it connects automatically; if PostgreSQL is not installed, it falls back to an embedded in-memory database with zero crashes!
 
 ---
 
-## 1. System Overview
+## 1. Project Directory Structure
 
-FacultyHire combines a modern **React + Vite** frontend, a robust **Java Spring Boot** system of record, and a high-performance **Python FastAPI + LangGraph** multi-agent AI microservice.
-
-### Key Capabilities
-- **Job Management:** Create, view, update, and manage faculty job postings with pure numeric identifiers (`1`, `2`, `3`) mapped directly to database records.
-- **Candidate Registry:** Register applicants, track recruitment status (`APPLIED`, `SHORTLISTED`, `REJECTED`, `INTERVIEW`), and view associated resumes.
-- **Single Resume Screening:** Upload individual PDF or DOCX resumes against any job posting for instant AI-driven evaluation.
-- **Batch ZIP Upload & Screening:** Upload a `.zip` archive containing multiple candidate resumes. The system automatically unzips, parses, queues, and enables one-by-one or automated batch screening across all candidates.
-- **LangGraph Multi-Agent Architecture:** Utilizes a 4-agent state graph pipeline (Profile Extractor $\rightarrow$ Criteria Analyzer $\rightarrow$ Evidence Evaluator $\rightarrow$ Scoring Synthesis) with strict JSON schema validation and deterministic scoring.
-- **1-Click Database Persistence:** Synchronize AI screening results and candidate records straight into PostgreSQL via the Java backend with a single click.
-- **White-Labeled Enterprise UI:** Clean, modern interface without third-party vendor watermarks or external AI branding.
-
----
-
-## 2. Technology Stack
-
-| Layer | Technologies |
-|---|---|
-| **Frontend** | React 18, Vite, Lucide Icons, Modern CSS3 |
-| **Main Backend** | Java 17+, Spring Boot 3.x, Spring Data JPA, Hibernate, Maven |
-| **Database** | PostgreSQL |
-| **AI Microservice** | Python 3.10+, FastAPI, Uvicorn, LangChain, LangGraph, Groq SDK, PyMuPDF, python-docx, Pydantic v2 |
-| **Testing** | Pytest, Mocking, Spring Boot Test |
-
----
-
-## 3. Project Structure
+The repository is organized into a clean, standard mono-repo layout with no nested spaces:
 
 ```text
 AI_RecruitmentService/
-├── start_all.bat                           # 1-Click launcher for Windows
-├── start_all.sh                            # 1-Click launcher for Linux/macOS
-├── pom.xml                                 # Java Spring Boot Maven configuration
-├── mvnw / mvnw.cmd                         # Maven wrappers
-├── src/                                    # Java Spring Boot application source
-│   ├── main/java/com/recruitment/recruitment_system/
-│   │   ├── candidate/                      # Candidate entity, repository, service, controller
-│   │   ├── job/                            # Job entity, repository, service, controller
-│   │   ├── resume/                         # Resume storage & metadata management
-│   │   ├── screening/                      # Screening result persistence
-│   │   └── RecruitmentSystemApplication.java
-│   └── main/resources/
-│       └── application.properties          # Spring Boot database & server settings
-├── AI ATS frontend/recruitment-frontend/    # React + Vite frontend
+├── requirements.txt            # Root Python dependencies (run pip install from here!)
+├── package.json                # Root frontend scripts (run npm install/dev from here!)
+├── .env.example                # Root environment template
+├── start_all.bat               # 1-Click launcher for Windows
+├── start_all.sh                # 1-Click launcher for Linux / macOS
+│
+├── ai-service/                 # Python FastAPI AI Microservice (Port 8001)
+│   ├── agents/
+│   │   ├── multi_agent_graph.py# LangGraph 4-agent state pipeline
+│   │   └── screening_agent.py  # LLM client, structured outputs & schema validation
+│   ├── routers/
+│   │   └── resumes.py          # Single, batch ZIP, and text screening endpoints
+│   ├── schemas/
+│   │   └── resumes.py          # Pydantic schemas (ScreeningResultResponse, etc.)
+│   ├── services/
+│   │   └── document_phaser.py  # PyMuPDF (PDF) & python-docx extraction engine
+│   ├── tests/                  # 18 passing automated unit & integration tests
+│   ├── main.py                 # FastAPI application entry point
+│   ├── pytest.ini              # Pytest configuration
+│   └── requirements.txt        # Service-level dependencies
+│
+├── frontend/                   # React 18 + Vite Web Application (Port 5173)
 │   ├── src/
-│   │   ├── App.jsx                         # Main UI (Dashboard, Jobs, Candidates, AI Screening)
-│   │   ├── App.css                         # Enterprise styling & responsive layout
+│   │   ├── App.jsx             # Dashboard, Jobs, Candidates, & Batch AI Screening UI
+│   │   ├── App.css             # Enterprise styling
 │   │   └── main.jsx
-│   ├── vite.config.js                      # Reverse proxies for /api (Java) & /api/v1 (Python)
-│   └── package.json
-└── ATS Final Project/backend/              # Python FastAPI AI Microservice
-    ├── agents/
-    │   ├── multi_agent_graph.py            # LangGraph 4-agent state machine
-    │   └── screening_agent.py              # LLM client, structured outputs & fallbacks
-    ├── routers/
-    │   └── resumes.py                      # Single, batch ZIP, and direct text screening endpoints
-    ├── schemas/
-    │   └── resumes.py                      # Pydantic schemas (ScreeningResultResponse, etc.)
-    ├── services/
-    │   └── document_phaser.py              # PDF (PyMuPDF) and DOCX (python-docx) extraction
-    ├── tests/                              # Pytest test suite (18 unit & integration tests)
-    ├── main.py                             # FastAPI application entry point
-    ├── requirements.txt                    # Python dependencies
-    └── .env.example                        # Template for environment variables
+│   ├── vite.config.js          # Reverse proxy: /api -> 8080, /api/v1 -> 8001
+│   └── package.json            # React frontend dependencies
+│
+├── pom.xml                     # Java Spring Boot Maven configuration (Java 17 LTS baseline)
+├── mvnw / mvnw.cmd             # Maven wrappers
+└── src/                        # Java Spring Boot source code (Port 8080)
+    ├── main/java/com/recruitment/recruitment_system/
+    │   ├── candidate/          # Candidate entity, repository, service, controller
+    │   ├── job/                # Job entity, repository, service, controller
+    │   ├── resume/             # File storage & metadata management
+    │   ├── screening/          # Screening result persistence
+    │   └── RecruitmentSystemApplication.java
+    └── main/resources/
+        ├── application.properties    # PostgreSQL configuration (default password: varun2006)
+        └── application-h2.properties # Automatic in-memory database fallback profile
 ```
 
 ---
 
-## 4. Quick Start (One-Click Launcher)
+## 2. Quick Start on Any Device (1-Click)
 
 ### Windows
-Double-click `start_all.bat` or run it from Command Prompt:
-
+Double-click `start_all.bat` or run from Command Prompt:
 ```cmd
 start_all.bat
 ```
 
-The script will:
-1. Prompt for your PostgreSQL password (if not already set in `DB_PASSWORD`).
-2. Launch the **Python AI Microservice** on `http://127.0.0.1:8001` in its own terminal.
-3. Launch the **Java Spring Boot Backend** on `http://localhost:8080` in its own terminal.
-4. Launch the **React Vite Frontend** on `http://localhost:5173` in its own terminal.
-5. Automatically open `http://localhost:5173` in your default browser.
+**What `start_all.bat` automatically handles:**
+1. **First-Time Setup:** Checks if Python `.venv` or React `node_modules` are missing and installs them automatically.
+2. **JDK Detection:** Searches for installed JDKs (Adoptium, Temurin, Oracle, Corretto, Microsoft) and configures `JAVA_HOME`.
+3. **Database Detection:**
+   - If **PostgreSQL is running on port 5432**: connects to PostgreSQL and creates `recruitment_db` if needed.
+   - If **PostgreSQL is NOT installed or stopped**: automatically starts with the embedded H2 database (PostgreSQL mode) so everything works with zero manual database configuration!
+4. **Launches All 3 Services:**
+   - **Terminal 1:** Python AI Microservice (`http://127.0.0.1:8001/docs`)
+   - **Terminal 2:** Java Spring Boot Backend (`http://127.0.0.1:8080`)
+   - **Terminal 3:** React Web Portal (`http://localhost:5173`)
+5. Opens `http://localhost:5173` in your default browser.
 
 ### Linux / macOS
 ```bash
@@ -97,155 +87,108 @@ chmod +x start_all.sh
 
 ---
 
-## 5. Manual Setup & Execution
+## 3. Manual Step-by-Step Setup
 
-If you prefer running services individually or in development mode, follow these steps:
+If you prefer starting services manually or configuring each component individually:
 
-### Step 1: PostgreSQL Database Setup
-1. Ensure PostgreSQL is installed and running.
-2. Create a database named `recruitment_db`:
-   ```sql
-   CREATE DATABASE recruitment_db;
-   ```
-3. Set your PostgreSQL password environment variable:
-   - **Windows (CMD):** `set DB_PASSWORD=your_password`
-   - **Windows (PowerShell):** `$env:DB_PASSWORD="your_password"`
-   - **Linux/macOS:** `export DB_PASSWORD=your_password`
+### Step 1: Python AI Microservice (Port 8001)
+You can now install dependencies directly from the **root folder**:
+```bash
+# 1. Create and activate a virtual environment
+python -m venv ai-service/.venv
 
-### Step 2: Python AI Microservice (Port 8001)
-1. Navigate to the Python backend directory:
-   ```bash
-   cd "ATS Final Project/backend"
-   ```
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv .venv
-   # Windows:
-   .\.venv\Scripts\activate
-   # Linux/macOS:
-   source .venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Configure `.env`:
-   Create a `.env` file in `ATS Final Project/backend/`:
-   ```dotenv
-   GROQ_API_KEY=your_groq_api_key_here
-   GROQ_MODEL=openai/gpt-oss-20b
-   ```
-   *(Supported models include `openai/gpt-oss-20b`, `llama-3.3-70b-versatile`, `mixtral-8x7b-32768`)*
-5. Start the FastAPI server:
-   ```bash
-   python -m uvicorn main:app --host 127.0.0.1 --port 8001 --reload
-   ```
-   - Swagger Documentation: `http://127.0.0.1:8001/docs`
-   - Health Check: `http://127.0.0.1:8001/health`
+# Windows:
+ai-service\.venv\Scripts\activate
+# Linux/macOS:
+source ai-service/.venv/bin/activate
 
-### Step 3: Java Spring Boot Backend (Port 8080)
-1. From the project root (`AI_RecruitmentService/`):
-   ```bash
-   # Windows:
-   mvnw.cmd spring-boot:run
-   # Linux/macOS:
-   ./mvnw spring-boot:run
-   ```
-2. The server initializes JPA schema and starts on `http://localhost:8080`.
+# 2. Install dependencies (accessible from root or ai-service/)
+pip install -r requirements.txt
 
-### Step 4: React Frontend (Port 5173)
-1. Navigate to the frontend directory:
-   ```bash
-   cd "AI ATS frontend/recruitment-frontend"
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-4. Access the web application at `http://localhost:5173`.
+# 3. Configure .env (create .env at root or inside ai-service/)
+# GROQ_API_KEY=your_groq_api_key_here
+# GROQ_MODEL=openai/gpt-oss-20b
+
+# 4. Start the service
+cd ai-service
+python -m uvicorn main:app --host 127.0.0.1 --port 8001 --reload
+```
+
+### Step 2: Java Spring Boot Backend (Port 8080)
+From the repository root:
+```bash
+# Option A: With PostgreSQL (port 5432 running)
+# Windows:
+set DB_PASSWORD=your_password
+mvnw.cmd spring-boot:run
+
+# Linux/macOS:
+export DB_PASSWORD=your_password
+./mvnw spring-boot:run
+
+# Option B: Without PostgreSQL (using automatic in-memory H2 database)
+# Windows:
+mvnw.cmd spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=h2
+
+# Linux/macOS:
+./mvnw spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=h2
+```
+
+### Step 3: React Frontend (Port 5173)
+You can run frontend commands directly from the **root folder** or from `frontend/`:
+```bash
+# From root folder:
+npm install
+npm run dev
+
+# Or from frontend/ folder:
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
-## 6. Multi-Agent AI Screening Architecture
+## 4. Multi-Agent AI Screening Pipeline
 
-FacultyHire replaces simple single-prompt completions with a specialized **LangGraph 4-Agent State Machine**:
+The AI microservice implements an autonomous **LangGraph 4-Agent State Machine**:
 
 ```mermaid
 flowchart LR
-    A["Raw Resume (PDF/DOCX)"] --> B["Profile Extractor Agent"]
-    B --> C["Criteria Analyzer Agent"]
-    C --> D["Evidence Evaluator Agent"]
-    D --> E["Scoring & Synthesis Agent"]
-    E --> F["Validated Screening Result (JSON)"]
+    A["Resume (PDF / DOCX)"] --> B["1. Profile Extractor"]
+    B --> C["2. Criteria Analyzer"]
+    C --> D["3. Evidence Evaluator"]
+    D --> E["4. Scoring Synthesis"]
+    E --> F["Structured Result (JSON)"]
 ```
 
-1. **Profile Extractor Agent:** Extracts structured applicant information (name, contact, education, degrees, years of academic/industry experience, domain specializations).
-2. **Criteria Analyzer Agent:** Compares candidate qualifications against the job description and required skills, classifying skills into `matched_skills` and `missing_skills`.
-3. **Evidence Evaluator Agent:** Gathers direct citations, project references, and publication excerpts from the resume that validate claimed competencies.
-4. **Scoring & Synthesis Agent:** Computes a calibrated match score ($0-100\%$), provides an executive hiring summary, and flags key strengths and risks.
-
-### Robust Fallback System
-The microservice enforces strict JSON schemas:
-- Primary: Groq strict `json_schema` mode.
-- Secondary Fallback: Standard `json_object` mode with Pydantic runtime validation.
-- Tertiary Fallback: Zero-shot regex extraction to recover from malformed JSON responses without failing the request.
+1. **Profile Extractor Agent:** Parses raw resume text to extract candidate name, contact information, academic degrees, research specializations, and years of experience.
+2. **Criteria Analyzer Agent:** Evaluates candidate credentials against the job posting description and required competencies, categorizing skills into `matched_skills` and `missing_skills`.
+3. **Evidence Evaluator Agent:** Gathers direct citations, publications, and specific project references from the resume that validate claimed qualifications.
+4. **Scoring & Synthesis Agent:** Computes a calibrated match score ($0-100\%$), provides an executive recommendation, and outlines key strengths and evaluation notes.
 
 ---
 
-## 7. REST API Reference
+## 5. Automated Tests
 
-### Python AI Microservice (Port 8001)
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Health check endpoint returning service and model status |
-| `POST` | `/api/v1/screen-resume` | Screen a single resume (`multipart/form-data`: `file`, `job_id`, `job_title`, `job_description`, `required_skills`) |
-| `POST` | `/api/v1/screen-resume/upload-zip` | Upload a `.zip` archive containing multiple resumes; unpacks and returns candidate list |
-| `POST` | `/api/v1/screen-resume/screen-text` | Screen extracted text directly using numeric `job_id` |
-
-### Java Spring Boot Backend (Port 8080)
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/jobs` | Create a new job posting |
-| `GET` | `/api/jobs` | List all job postings |
-| `GET` | `/api/jobs/{id}` | Get job details by numeric ID |
-| `PUT` | `/api/jobs/{id}` | Update an existing job posting |
-| `DELETE` | `/api/jobs/{id}` | Remove a job posting |
-| `POST` | `/api/candidates/jobs/{jobId}` | Register a candidate under a specific numeric job ID |
-| `GET` | `/api/candidates` | List all candidates across jobs |
-| `GET` | `/api/candidates/{id}` | Get candidate details by ID |
-| `POST` | `/api/candidates/{candidateId}/resume` | Store resume file and create resume metadata record |
-| `GET` | `/api/resumes/{id}` | Retrieve resume metadata |
-| `POST` | `/api/screening-results/resumes/{resumeId}` | Persist AI screening score, skills, and evidence |
-| `GET` | `/api/screening-results` | List all saved screening results |
-| `GET` | `/api/screening-results/resumes/{resumeId}` | Retrieve screening result for a given resume |
-
----
-
-## 8. Verification & Automated Testing
-
-The Python AI service includes comprehensive automated test coverage for health checks, document parsing, provider errors, and schema compatibility.
-
-To run the automated tests:
+Run the test suite in `ai-service`:
 ```bash
-cd "ATS Final Project/backend"
+cd ai-service
 python -m pytest -v
 ```
 
-### Test Suite Summary (18 Passed)
-- `test_health.py` (3 tests): Service health, missing API key handling, and invalid model name handling.
-- `test_document_phaser.py` (7 tests): PDF extraction, DOCX extraction, empty file rejection, invalid extension rejection, corrupt file error handling, Windows file-lock cleanup, and newline preservation.
-- `test_screening.py` (8 tests): Single screening mocked pipeline, batch ZIP upload, direct text screening, rate-limit 429 handling, network timeout 504 handling, malformed JSON recovery, and Pydantic schema validation.
+### Test Results: 18 / 18 Passed
+- `tests/test_endpoint_validation.py`: Rejection of unsupported files and payload validation.
+- `tests/test_groq_screening.py`: Mocked multi-agent screening, batch ZIP extraction, text screening by numeric job ID, rate-limit 429 errors, network timeouts, malformed JSON recovery, and temporary file cleanup.
+- `tests/test_health.py`: Microservice health check.
 
 ---
 
-## 9. Security & Compliance
+## 6. Security & Database Notes
 
-- **Credentials:** Never commit `.env` or database passwords. Keep `GROQ_API_KEY` and `DB_PASSWORD` in your local environment.
-- **Data Privacy:** Resume documents contain personal identifiable information (PII). Ensure uploaded files and database backups are stored securely with restricted access.
-- **Human-in-the-Loop:** AI screening results provide advisory ranking and matching metrics. Final hiring decisions rest with authorized department chairs and recruitment committees.
+- **Database Credentials:** Password defaults to `varun2006` if not provided, or can be set via `DB_PASSWORD`.
+- **API Keys:** Store your `GROQ_API_KEY` in `.env` (at root or inside `ai-service/`). `.env` is ignored by Git and never committed.
+- **Port Mapping:**
+  - `8001`: Python AI Microservice
+  - `8080`: Java Spring Boot Backend
+  - `5173`: React Frontend Web Portal
