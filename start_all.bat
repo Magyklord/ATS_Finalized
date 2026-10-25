@@ -8,26 +8,53 @@ echo.
 set "ROOT_DIR=%~dp0"
 cd /d "%ROOT_DIR%"
 
-:: 1. Auto-detect and configure JAVA_HOME if not defined
-if "%JAVA_HOME%"=="" (
-    if exist "C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot" (
-        set "JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot"
-        set "PATH=C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot\bin;%PATH%"
-    ) else if exist "C:\Program Files\Java\jdk-21" (
-        set "JAVA_HOME=C:\Program Files\Java\jdk-21"
-        set "PATH=C:\Program Files\Java\jdk-21\bin;%PATH%"
-    ) else if exist "C:\Program Files\Java\jdk-17" (
-        set "JAVA_HOME=C:\Program Files\Java\jdk-17"
-        set "PATH=C:\Program Files\Java\jdk-17\bin;%PATH%"
+:: 1. Auto-detect Java / JDK 17+
+where java >nul 2>&1
+if errorlevel 1 (
+    echo [JAVA CHECK] 'java' not found in PATH. Searching for JDK...
+    for /d %%D in ("C:\Program Files\Eclipse Adoptium\jdk*" "C:\Program Files\Java\jdk*" "C:\Program Files\Amazon Corretto\jdk*" "C:\Program Files\Microsoft\jdk*") do (
+        if exist "%%D\bin\javac.exe" (
+            set "JAVA_HOME=%%D"
+            set "PATH=%%D\bin;%PATH%"
+            goto :found_java
+        )
     )
+    echo [ERROR] No Java JDK found! Please install JDK 17 or higher from https://adoptium.net/
+    pause
+    exit /b 1
+    :found_java
+    echo [JAVA CHECK] Found JDK at %JAVA_HOME%
 )
 
-:: 2. Prompt for PostgreSQL DB_PASSWORD if not set
+:: 2. Check and configure PostgreSQL DB_PASSWORD
 if "%DB_PASSWORD%"=="" (
     set /p DB_PASSWORD="Enter PostgreSQL password for user 'postgres' (press Enter for 'varun2006'): "
 )
 if "%DB_PASSWORD%"=="" (
     set "DB_PASSWORD=varun2006"
+)
+
+:: Quick PostgreSQL port 5432 reachability check
+powershell -NoProfile -Command "$c = Test-NetConnection -ComputerName 127.0.0.1 -Port 5432 -InformationLevel Quiet -WarningAction SilentlyContinue; if (!$c) { Write-Host '[WARNING] PostgreSQL is NOT reachable on 127.0.0.1:5432! Ensure PostgreSQL service is running and recruitment_db database exists.' -ForegroundColor Yellow }"
+
+:: 3. Setup Python venv if missing
+if not exist "%ROOT_DIR%ATS Final Project\backend\.venv\Scripts\python.exe" (
+    echo.
+    echo [Setup] First-time setup: Creating Python virtual environment...
+    cd /d "%ROOT_DIR%ATS Final Project\backend"
+    python -m venv .venv
+    echo [Setup] Installing Python dependencies...
+    .\.venv\Scripts\pip install -r requirements.txt
+    cd /d "%ROOT_DIR%"
+)
+
+:: 4. Setup React node_modules if missing
+if not exist "%ROOT_DIR%AI ATS frontend\recruitment-frontend\node_modules" (
+    echo.
+    echo [Setup] First-time setup: Installing React frontend dependencies...
+    cd /d "%ROOT_DIR%AI ATS frontend\recruitment-frontend"
+    call npm install
+    cd /d "%ROOT_DIR%"
 )
 
 echo.
@@ -44,8 +71,11 @@ echo.
 echo ======================================================================
 echo All 3 services have been launched in separate terminal windows:
 echo   - AI Microservice (FastAPI + LangGraph) : http://127.0.0.1:8001/docs
-echo   - Java Spring Boot Backend              : http://localhost:8080
+echo   - Java Spring Boot Backend              : http://127.0.0.1:8080
 echo   - React Web Portal                      : http://localhost:5173
+echo.
+echo Check the 'FacultyHire - Java Backend' terminal window to confirm:
+echo   'Started RecruitmentSystemApplication' appears!
 echo ======================================================================
 echo.
 echo Opening browser to http://localhost:5173 in 5 seconds...
