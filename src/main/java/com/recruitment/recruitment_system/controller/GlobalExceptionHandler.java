@@ -1,4 +1,3 @@
-
 package com.recruitment.recruitment_system.controller;
 
 import org.springframework.http.HttpStatus;
@@ -7,21 +6,23 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestControllerAdvice //handles exceptions across rest controllers - all the other controller files
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class) //catches valdiation errors caused by @valid
+    @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationErrors(
             MethodArgumentNotValidException exception) {
 
-        Map<String, String> errors = new HashMap<>(); //initializing a hash map to record all the errors/exceptions
+        Map<String, String> errors = new HashMap<>();
 
-        exception.getBindingResult() //the core idea is to create a json response that shows the explanation for the error based on whatever it is
-                .getFieldErrors() //this block basically specifies the error based on data from screeningresult.java
+        exception.getBindingResult()
+                .getFieldErrors()
                 .forEach(error ->
                         errors.put(
                                 error.getField(),
@@ -34,13 +35,11 @@ public class GlobalExceptionHandler {
                 .body(errors);
     }
 
-    //cleaner json error format handling
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleInvalidJson(
             HttpMessageNotReadableException exception) {
 
         Map<String, String> error = new HashMap<>();
-
         error.put("error", "Invalid request body");
         error.put("message", "Please send valid JSON with the correct field types.");
 
@@ -49,4 +48,33 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(
+            ResponseStatusException exception) {
+
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", exception.getStatusCode().value());
+        error.put("error", exception.getReason() != null ? exception.getReason() : "Request error");
+        error.put("message", exception.getReason());
+
+        return ResponseEntity
+                .status(exception.getStatusCode())
+                .body(error);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGeneralException(
+            Exception exception) {
+
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        error.put("error", "Internal Server Error");
+        error.put("message", exception.getMessage() != null ? exception.getMessage() : "An unexpected server error occurred.");
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(error);
+    }
 }

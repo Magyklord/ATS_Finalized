@@ -1,4 +1,3 @@
-
 package com.recruitment.recruitment_system.controller;
 
 import com.recruitment.recruitment_system.model.ScreeningResult;
@@ -14,8 +13,7 @@ public class ScreeningResultController {
 
     private final ScreeningResultService screeningResultService;
 
-    public ScreeningResultController(
-            ScreeningResultService screeningResultService) {
+    public ScreeningResultController(ScreeningResultService screeningResultService) {
         this.screeningResultService = screeningResultService;
     }
 
@@ -24,9 +22,16 @@ public class ScreeningResultController {
     public ScreeningResult saveScreeningResult(
             @PathVariable Long resumeId,
             @jakarta.validation.Valid @RequestBody ScreeningResult result) {
+        return screeningResultService.saveScreeningResult(resumeId, result);
+    }
 
-        return screeningResultService.saveScreeningResult(
-                resumeId, result);
+    @PostMapping("/candidates/{candidateId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ScreeningResult saveCandidateScreeningResult(
+            @PathVariable Long candidateId,
+            @RequestParam(required = false) String fileName,
+            @jakarta.validation.Valid @RequestBody ScreeningResult result) {
+        return screeningResultService.saveCandidateScreeningResult(candidateId, result, fileName);
     }
 
     @GetMapping
@@ -35,9 +40,12 @@ public class ScreeningResultController {
     }
 
     @GetMapping("/resumes/{resumeId}")
-    public List<ScreeningResult> getResultsByResumeId(
-            @PathVariable Long resumeId) {
-
+    public List<ScreeningResult> getResultsByResumeId(@PathVariable Long resumeId) {
         return screeningResultService.getResultsByResumeId(resumeId);
+    }
+
+    @GetMapping("/candidates/{candidateId}")
+    public List<ScreeningResult> getResultsByCandidateId(@PathVariable Long candidateId) {
+        return screeningResultService.getResultsByCandidateId(candidateId);
     }
 }

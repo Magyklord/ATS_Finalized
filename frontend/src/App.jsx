@@ -2,11 +2,53 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 
+// Professional inline vector SVG icons for sidebar navigation
+function DashboardIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="9" rx="1" />
+      <rect x="14" y="3" width="7" height="5" rx="1" />
+      <rect x="14" y="12" width="7" height="9" rx="1" />
+      <rect x="3" y="16" width="7" height="5" rx="1" />
+    </svg>
+  );
+}
+
+function JobsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </svg>
+  );
+}
+
+function CandidatesIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function ScreeningIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      <path d="M11 8v6M8 11h6" />
+    </svg>
+  );
+}
+
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: '▦' },
-  { id: 'jobs', label: 'Jobs', icon: '▤' },
-  { id: 'candidates', label: 'Candidates', icon: '♙' },
-  { id: 'screening', label: 'AI Screening', icon: '✧' },
+  { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+  { id: 'jobs', label: 'Jobs', icon: <JobsIcon /> },
+  { id: 'candidates', label: 'Candidates', icon: <CandidatesIcon /> },
+  { id: 'screening', label: 'AI Screening', icon: <ScreeningIcon /> },
 ];
 
 function Sidebar({ activePage, onNavigate }) {
@@ -76,15 +118,15 @@ function Dashboard({ onNavigate }) {
       </div>
 
       <div className="notice">
-        <span>ⓘ</span>
+        <span>[i]</span>
         Preview mode — dashboard figures are sample data, not live database records.
       </div>
 
       <div className="stats-grid">
-        <StatCard label="Open Positions" value="04" icon="▤" note="Sample dashboard figure" />
-        <StatCard label="Total Candidates" value="128" icon="♙" note="Sample dashboard figure" />
-        <StatCard label="Resumes Uploaded" value="96" icon="▧" note="Sample dashboard figure" />
-        <StatCard label="AI Screenings" value="72" icon="✧" note="Sample dashboard figure" />
+        <StatCard label="Open Positions" value="04" icon="#" note="Sample dashboard figure" />
+        <StatCard label="Total Candidates" value="128" icon="" note="Sample dashboard figure" />
+        <StatCard label="Resumes Uploaded" value="96" icon="" note="Sample dashboard figure" />
+        <StatCard label="AI Screenings" value="72" icon="#" note="Sample dashboard figure" />
       </div>
 
       <div className="dashboard-grid">
@@ -137,30 +179,30 @@ function Dashboard({ onNavigate }) {
           </div>
 
           <button className="action-row" onClick={() => onNavigate('jobs')}>
-            <span className="action-icon">＋</span>
+            <span className="action-icon">+</span>
             <span>
               <strong>View job openings</strong>
               <small>Load positions from the database</small>
             </span>
-            <span className="action-arrow">›</span>
+            <span className="action-arrow">&gt;</span>
           </button>
 
           <button className="action-row" onClick={() => onNavigate('candidates')}>
-            <span className="action-icon">♙</span>
+            <span className="action-icon"></span>
             <span>
               <strong>Manage candidates</strong>
               <small>Review registered applicants</small>
             </span>
-            <span className="action-arrow">›</span>
+            <span className="action-arrow">&gt;</span>
           </button>
 
           <button className="action-row" onClick={() => onNavigate('screening')}>
-            <span className="action-icon">✧</span>
+            <span className="action-icon">+</span>
             <span>
               <strong>Review AI screening</strong>
               <small>Explore screening results</small>
             </span>
-            <span className="action-arrow">›</span>
+            <span className="action-arrow">&gt;</span>
           </button>
         </section>
       </div>
@@ -169,11 +211,32 @@ function Dashboard({ onNavigate }) {
 }
 
 
+// Helper to parse human-readable error messages from backend responses
+async function parseErrorMessage(response, defaultMsg) {
+  try {
+    const raw = await response.text();
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.message) return parsed.message;
+      if (parsed.error && typeof parsed.error === 'string') return parsed.error;
+      // If it's a validation map like {"title": "Job title is needed"}
+      if (typeof parsed === 'object') {
+        const values = Object.values(parsed);
+        if (values.length > 0 && typeof values[0] === 'string') return values.join(', ');
+      }
+    } catch {
+      if (raw && raw.length < 200) return raw;
+    }
+  } catch {}
+  return `${defaultMsg} (${response.status})`;
+}
+
 function JobsPage() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editingJobId, setEditingJobId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
 
@@ -221,6 +284,45 @@ function JobsPage() {
     }));
   }
 
+  function handleStartCreate() {
+    setEditingJobId(null);
+    setForm({ title: '', department: '', description: '' });
+    setError('');
+    setSuccess('');
+    setShowForm(true);
+  }
+
+  function handleStartEdit(job) {
+    setEditingJobId(job.id);
+    setForm({
+      title: job.title || '',
+      department: job.department || '',
+      description: job.description || '',
+    });
+    setError('');
+    setSuccess('');
+    setShowForm(true);
+  }
+
+  async function handleDeleteJob(id, title) {
+    if (!window.confirm(`Are you sure you want to delete job "${title || '#' + id}"?\n\nNotice: This will also remove any candidates and screening results associated with this position.`)) {
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+    try {
+      const response = await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
+      if (!response.ok && response.status !== 204) {
+        throw new Error(`Failed to delete job (${response.status})`);
+      }
+      setSuccess(`Job #${id} deleted successfully.`);
+      await fetchJobs();
+    } catch (err) {
+      setError(err.message || 'Could not delete the job.');
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
@@ -228,8 +330,11 @@ function JobsPage() {
     setSaving(true);
 
     try {
-      const response = await fetch('/api/jobs', {
-        method: 'POST',
+      const url = editingJobId ? `/api/jobs/${editingJobId}` : '/api/jobs';
+      const method = editingJobId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -237,10 +342,8 @@ function JobsPage() {
       });
 
       if (!response.ok) {
-        const message = await response.text();
-        throw new Error(
-          message || `Could not create job (${response.status}).`
-        );
+        const msg = await parseErrorMessage(response, `Could not ${editingJobId ? 'update' : 'create'} job`);
+        throw new Error(msg);
       }
 
       setForm({
@@ -250,10 +353,11 @@ function JobsPage() {
       });
 
       setShowForm(false);
-      setSuccess('Job created successfully!');
+      setSuccess(editingJobId ? 'Job updated successfully!' : 'Job created successfully!');
+      setEditingJobId(null);
       await fetchJobs();
     } catch (err) {
-      setError(err.message || 'Could not create the job.');
+      setError(err.message || `Could not ${editingJobId ? 'update' : 'create'} the job.`);
     } finally {
       setSaving(false);
     }
@@ -266,16 +370,19 @@ function JobsPage() {
           <p className="eyebrow">RECRUITMENT MANAGEMENT</p>
           <h1>Job Openings</h1>
           <p className="muted">
-            Create and manage faculty positions.
+            Create, update, and manage faculty positions.
           </p>
         </div>
 
         <button
           className="primary-button"
           onClick={() => {
-            setShowForm((previous) => !previous);
-            setError('');
-            setSuccess('');
+            if (showForm) {
+              setShowForm(false);
+              setEditingJobId(null);
+            } else {
+              handleStartCreate();
+            }
           }}
         >
           {showForm ? 'Cancel' : '+ Create Job'}
@@ -283,15 +390,15 @@ function JobsPage() {
       </div>
 
       {success && (
-        <div className="notice">
-          <span>✓</span>
+        <div className="notice" style={{ background: '#e6f6ee', color: '#176f45', border: '1px solid #b7e8d0' }}>
+          <span>[OK]</span>
           {success}
         </div>
       )}
 
       {error && (
         <div className="error-message">
-          <strong>Something went wrong</strong>
+          <strong>Something went wrong:</strong>
           <p>{error}</p>
         </div>
       )}
@@ -300,8 +407,8 @@ function JobsPage() {
         <section className="panel job-form-panel">
           <div className="panel-heading">
             <div>
-              <h3>Create a Faculty Position</h3>
-              <p>Enter the details of the new job opening.</p>
+              <h3>{editingJobId ? `Edit Job #${editingJobId}` : 'Create a Faculty Position'}</h3>
+              <p>{editingJobId ? 'Modify the details of this job opening.' : 'Enter the details of the new job opening.'}</p>
             </div>
           </div>
 
@@ -347,7 +454,10 @@ function JobsPage() {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingJobId(null);
+                }}
                 disabled={saving}
               >
                 Cancel
@@ -358,7 +468,7 @@ function JobsPage() {
                 className="primary-button"
                 disabled={saving}
               >
-                {saving ? 'Saving...' : 'Save Job'}
+                {saving ? (editingJobId ? 'Updating...' : 'Saving...') : (editingJobId ? 'Update Job' : 'Save Job')}
               </button>
             </div>
           </form>
@@ -377,7 +487,7 @@ function JobsPage() {
             onClick={fetchJobs}
             disabled={loading}
           >
-            ↻ Refresh
+            Refresh
           </button>
         </div>
 
@@ -385,7 +495,7 @@ function JobsPage() {
           <p className="state-message">Loading jobs...</p>
         ) : jobs.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">▤</div>
+            <div className="empty-icon">[]</div>
             <h3>No jobs found</h3>
             <p>Create your first faculty position to get started.</p>
           </div>
@@ -398,6 +508,7 @@ function JobsPage() {
                   <th>JOB TITLE</th>
                   <th>DEPARTMENT</th>
                   <th>DESCRIPTION</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
 
@@ -411,6 +522,26 @@ function JobsPage() {
                     <td>{job.department ?? '—'}</td>
                     <td className="description-cell">
                       {job.description ?? '—'}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          style={{ padding: '5px 10px', fontSize: '11px' }}
+                          onClick={() => handleStartEdit(job)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          style={{ padding: '5px 10px', fontSize: '11px', color: '#c53030', borderColor: '#feb2b2' }}
+                          onClick={() => handleDeleteJob(job.id, job.title)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -431,7 +562,10 @@ function CandidatesPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editingCandidateId, setEditingCandidateId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [viewingCandidateAnalysis, setViewingCandidateAnalysis] = useState(null);
+  const [loadingAnalysisId, setLoadingAnalysisId] = useState(null);
 
   const [form, setForm] = useState({
     fullName: '',
@@ -505,6 +639,106 @@ function CandidatesPage() {
     }));
   }
 
+  function handleStartCreate() {
+    setEditingCandidateId(null);
+    setForm({
+      fullName: '',
+      email: '',
+      phone: '',
+      jobId: jobs.length > 0 ? jobs[0].id : '',
+    });
+    setError('');
+    setSuccess('');
+    setShowForm(true);
+  }
+
+  function handleStartEdit(cand) {
+    setEditingCandidateId(cand.id);
+    setForm({
+      fullName: cand.fullName || '',
+      email: cand.email || '',
+      phone: cand.phone || '',
+      jobId: cand.job?.id || (jobs.length > 0 ? jobs[0].id : ''),
+    });
+    setError('');
+    setSuccess('');
+    setShowForm(true);
+  }
+
+  async function handleDeleteCandidate(id, name) {
+    if (!window.confirm(`Are you sure you want to delete candidate "${name || '#' + id}"?\n\nThis will remove their candidate record and any associated resume analysis.`)) {
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+    try {
+      const response = await fetch(`/api/candidates/${id}`, { method: 'DELETE' });
+      if (!response.ok && response.status !== 204) {
+        throw new Error(`Failed to delete candidate (${response.status})`);
+      }
+      setSuccess(`Candidate #${id} deleted successfully.`);
+      await fetchPageData();
+    } catch (err) {
+      setError(err.message || 'Could not delete candidate.');
+    }
+  }
+
+  async function handleViewAnalysis(candidate) {
+    setLoadingAnalysisId(candidate.id);
+    setError('');
+    try {
+      const res = await fetch(`/api/screening-results/candidates/${candidate.id}`);
+      if (!res.ok) {
+        throw new Error('Could not retrieve candidate screening history.');
+      }
+      const results = await res.json();
+      if (!Array.isArray(results) || results.length === 0) {
+        alert(`No saved screening analysis found for ${candidate.fullName}. You can screen them under the "AI Screening" tab!`);
+        return;
+      }
+      // Sort by newest screenedAt
+      const latest = results[results.length - 1];
+      
+      // Parse structured fields if stored as JSON strings
+      let parsedMatched = [];
+      let parsedMissing = [];
+      let parsedEvidence = [];
+
+      try {
+        parsedMatched = JSON.parse(latest.matchedSkills || '[]');
+      } catch {
+        parsedMatched = (latest.matchedSkills || '').split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      try {
+        parsedMissing = JSON.parse(latest.missingSkills || '[]');
+      } catch {
+        parsedMissing = [];
+      }
+
+      try {
+        parsedEvidence = JSON.parse(latest.evidence || '[]');
+      } catch {
+        parsedEvidence = latest.evidence ? [{ criterion: 'Summary Evidence', resumeEvidence: latest.evidence, assessment: 'Verified from Database' }] : [];
+      }
+
+      setViewingCandidateAnalysis({
+        ...latest,
+        candidateName: candidate.fullName,
+        candidateEmail: candidate.email,
+        jobTitle: candidate.job?.title || 'Faculty Role',
+        matchedSkills: parsedMatched,
+        missingSkills: parsedMissing,
+        evidence: parsedEvidence,
+      });
+    } catch (err) {
+      setError(err.message || 'Could not load analysis details.');
+    } finally {
+      setLoadingAnalysisId(null);
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
@@ -518,26 +752,48 @@ function CandidatesPage() {
     setSaving(true);
 
     try {
-      const response = await fetch(
-        `/api/candidates/jobs/${form.jobId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fullName: form.fullName,
-            email: form.email,
-            phone: form.phone,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const message = await response.text();
-        throw new Error(
-          message || `Could not register candidate (${response.status}).`
+      if (editingCandidateId) {
+        const response = await fetch(
+          `/api/candidates/${editingCandidateId}?jobId=${form.jobId}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fullName: form.fullName,
+              email: form.email,
+              phone: form.phone,
+            }),
+          }
         );
+
+        if (!response.ok) {
+          const msg = await parseErrorMessage(response, 'Could not update candidate');
+          throw new Error(msg);
+        }
+        setSuccess('Candidate updated successfully.');
+      } else {
+        const response = await fetch(
+          `/api/candidates/jobs/${form.jobId}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fullName: form.fullName,
+              email: form.email,
+              phone: form.phone,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const msg = await parseErrorMessage(response, 'Could not register candidate');
+          throw new Error(msg);
+        }
+        setSuccess('Candidate registered successfully.');
       }
 
       setForm({
@@ -548,11 +804,10 @@ function CandidatesPage() {
       });
 
       setShowForm(false);
-      setSuccess('Candidate registered successfully.');
-
-      await fetchCandidates();
+      setEditingCandidateId(null);
+      await fetchPageData();
     } catch (err) {
-      setError(err.message || 'Could not register candidate.');
+      setError(err.message || 'Could not save candidate.');
     } finally {
       setSaving(false);
     }
@@ -562,35 +817,38 @@ function CandidatesPage() {
     <div className="page-content">
       <div className="welcome-section">
         <div>
-          <p className="eyebrow">RECRUITMENT MANAGEMENT</p>
+          <p className="eyebrow">APPLICANT TRACKING</p>
           <h1>Candidates</h1>
           <p className="muted">
-            View applicants and register candidates for faculty positions.
+            Register applicants, update candidate profiles, and review saved AI evaluations.
           </p>
         </div>
 
         <button
           className="primary-button"
           onClick={() => {
-            setShowForm((previous) => !previous);
-            setError('');
-            setSuccess('');
+            if (showForm) {
+              setShowForm(false);
+              setEditingCandidateId(null);
+            } else {
+              handleStartCreate();
+            }
           }}
         >
-          {showForm ? 'Cancel' : '+ Add Candidate'}
+          {showForm ? 'Cancel' : '+ Register Candidate'}
         </button>
       </div>
 
       {success && (
-        <div className="notice">
-          <span>✓</span>
+        <div className="notice" style={{ background: '#e6f6ee', color: '#176f45', border: '1px solid #b7e8d0' }}>
+          <span>[OK]</span>
           {success}
         </div>
       )}
 
       {error && (
         <div className="error-message">
-          <strong>Something went wrong</strong>
+          <strong>Something went wrong:</strong>
           <p>{error}</p>
         </div>
       )}
@@ -599,93 +857,187 @@ function CandidatesPage() {
         <section className="panel job-form-panel">
           <div className="panel-heading">
             <div>
-              <h3>Register a Candidate</h3>
-              <p>Enter the applicant's details and select a job opening.</p>
+              <h3>{editingCandidateId ? `Edit Candidate #${editingCandidateId}` : 'Register a New Candidate'}</h3>
+              <p>{editingCandidateId ? 'Update applicant contact and job details.' : 'Enter applicant contact information and select an opening.'}</p>
             </div>
           </div>
 
-          {jobs.length === 0 ? (
-            <div className="empty-state">
-              <h3>No job openings available</h3>
-              <p>Create a job before registering a candidate.</p>
+          <form onSubmit={handleSubmit} className="job-form">
+            <div className="form-field">
+              <label htmlFor="candidate-name">Full Name *</label>
+              <input
+                id="candidate-name"
+                name="fullName"
+                value={form.fullName}
+                onChange={handleChange}
+                placeholder="e.g. Dr. Jane Smith"
+                required
+              />
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="job-form">
-              <div className="form-field">
-                <label htmlFor="candidate-name">Full Name *</label>
-                <input
-                  id="candidate-name"
-                  name="fullName"
-                  value={form.fullName}
-                  onChange={handleChange}
-                  placeholder="Enter candidate's full name"
-                  required
-                />
-              </div>
 
-              <div className="form-field">
-                <label htmlFor="candidate-email">Email *</label>
-                <input
-                  id="candidate-email"
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="candidate@example.com"
-                  required
-                />
-              </div>
+            <div className="form-field">
+              <label htmlFor="candidate-email">Email Address *</label>
+              <input
+                id="candidate-email"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="e.g. jane.smith@example.edu"
+                required
+              />
+            </div>
 
-              <div className="form-field">
-                <label htmlFor="candidate-phone">Phone *</label>
-                <input
-                  id="candidate-phone"
-                  name="phone"
-                  type="tel"
-                  value={form.phone}
-                  onChange={handleChange}
-                  placeholder="Enter phone number"
-                  required
-                />
-              </div>
+            <div className="form-field">
+              <label htmlFor="candidate-phone">Phone Number</label>
+              <input
+                id="candidate-phone"
+                name="phone"
+                type="tel"
+                value={form.phone}
+                onChange={handleChange}
+                placeholder="Enter phone number"
+              />
+            </div>
 
-              <div className="form-field">
-                <label htmlFor="candidate-job">Job Opening *</label>
-                <select
-                  id="candidate-job"
-                  name="jobId"
-                  value={form.jobId}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select a job opening</option>
-                  {jobs.map((job) => (
-                    <option key={job.id} value={job.id}>
-                      {job.title} — {job.department}
-                    </option>
+            <div className="form-field">
+              <label htmlFor="candidate-job">Job Opening *</label>
+              <select
+                id="candidate-job"
+                name="jobId"
+                value={form.jobId}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select a job opening</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title} — {job.department}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingCandidateId(null);
+                }}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={saving}
+              >
+                {saving ? (editingCandidateId ? 'Updating...' : 'Saving...') : (editingCandidateId ? 'Update Candidate' : 'Register Candidate')}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      {/* Viewing Saved Analysis Modal */}
+      {viewingCandidateAnalysis && (
+        <section className="screening-results-container" style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ margin: 0, color: '#1e3a63' }}>
+                Permanent Database Analysis: {viewingCandidateAnalysis.candidateName}
+              </h3>
+              <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '12px' }}>
+                Job Role: <strong>{viewingCandidateAnalysis.jobTitle}</strong> | Saved at:{' '}
+                {viewingCandidateAnalysis.screenedAt ? new Date(viewingCandidateAnalysis.screenedAt).toLocaleString() : 'Recent'}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setViewingCandidateAnalysis(null)}
+              style={{ fontSize: '11px' }}
+            >
+              Close Analysis
+            </button>
+          </div>
+
+          <div className="score-banner" style={{ marginTop: '14px' }}>
+            <div className="score-banner-left">
+              <h2>Evaluated Profile Score</h2>
+              <p>Database Status: <strong>PERMANENT RECORD</strong></p>
+              <p style={{ marginTop: '4px' }}>
+                Contact: <strong>{viewingCandidateAnalysis.candidateEmail}</strong>
+              </p>
+            </div>
+            <div className="score-circle">
+              {viewingCandidateAnalysis.matchScore != null ? Math.round(viewingCandidateAnalysis.matchScore) : 'N/A'}
+              <span>MATCH SCORE</span>
+            </div>
+          </div>
+
+          {viewingCandidateAnalysis.explanation && (
+            <div className="panel" style={{ marginTop: '14px' }}>
+              <h3 style={{ margin: '0 0 10px', color: '#1e3a63' }}>Executive Rationale & Assessment</h3>
+              <p style={{ margin: 0, lineHeight: 1.7, color: '#3b506f' }}>{viewingCandidateAnalysis.explanation}</p>
+            </div>
+          )}
+
+          <div className="panel" style={{ marginTop: '14px' }}>
+            <h3 style={{ margin: '0 0 12px', color: '#1e3a63' }}>Skills & Qualifications Match</h3>
+            <div style={{ marginBottom: '14px' }}>
+              <strong style={{ fontSize: '12px', color: '#176f45' }}>Matched Skills:</strong>
+              <div className="skills-tags-container">
+                {viewingCandidateAnalysis.matchedSkills && viewingCandidateAnalysis.matchedSkills.length > 0 ? (
+                  viewingCandidateAnalysis.matchedSkills.map((skill, idx) => (
+                    <span key={idx} className="skill-tag matched">{skill}</span>
+                  ))
+                ) : (
+                  <span style={{ color: '#888', fontSize: '12px' }}>None identified</span>
+                )}
+              </div>
+            </div>
+
+            {viewingCandidateAnalysis.missingSkills && viewingCandidateAnalysis.missingSkills.length > 0 && (
+              <div>
+                <strong style={{ fontSize: '12px', color: '#a82727' }}>Missing Skills:</strong>
+                <div className="skills-tags-container">
+                  {viewingCandidateAnalysis.missingSkills.map((skill, idx) => (
+                    <span key={idx} className="skill-tag missing">{skill}</span>
                   ))}
-                </select>
+                </div>
               </div>
+            )}
+          </div>
 
-              <div className="form-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setShowForm(false)}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : 'Register Candidate'}
-                </button>
+          {viewingCandidateAnalysis.evidence && viewingCandidateAnalysis.evidence.length > 0 && (
+            <div className="panel" style={{ marginTop: '14px' }}>
+              <h3 style={{ margin: '0 0 10px', color: '#1e3a63' }}>Evidence & Resume Citations</h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="evidence-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '30%' }}>Criterion</th>
+                      <th style={{ width: '40%' }}>Resume Evidence</th>
+                      <th style={{ width: '30%' }}>Assessment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingCandidateAnalysis.evidence.map((ev, i) => (
+                      <tr key={i}>
+                        <td><strong>{ev.criterion}</strong></td>
+                        <td><span className="evidence-quote">"{ev.resumeEvidence}"</span></td>
+                        <td>{ev.assessment}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </form>
+            </div>
           )}
         </section>
       )}
@@ -702,7 +1054,7 @@ function CandidatesPage() {
             onClick={fetchPageData}
             disabled={loading}
           >
-            ↻ Refresh
+            Refresh
           </button>
         </div>
 
@@ -710,7 +1062,7 @@ function CandidatesPage() {
           <p className="state-message">Loading candidates...</p>
         ) : candidates.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">♙</div>
+            <div className="empty-icon"></div>
             <h3>No candidates found</h3>
             <p>Register a candidate to get started.</p>
           </div>
@@ -724,6 +1076,7 @@ function CandidatesPage() {
                   <th>EMAIL</th>
                   <th>PHONE</th>
                   <th>JOB OPENING</th>
+                  <th>ANALYSIS & ACTIONS</th>
                 </tr>
               </thead>
 
@@ -735,12 +1088,41 @@ function CandidatesPage() {
                       <strong>{candidate.fullName ?? '—'}</strong>
                     </td>
                     <td>{candidate.email ?? '—'}</td>
-                    <td>{candidate.phone ?? '—'}</td>
+                    <td>{candidate.phone || '—'}</td>
                     <td>
                       {candidate.job?.title ??
                         (candidate.job?.id
                           ? `Job #${candidate.job.id}`
                           : '—')}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="primary-button"
+                          style={{ padding: '5px 10px', fontSize: '11px', background: '#2563eb' }}
+                          onClick={() => handleViewAnalysis(candidate)}
+                          disabled={loadingAnalysisId === candidate.id}
+                        >
+                          {loadingAnalysisId === candidate.id ? 'Loading...' : 'View Analysis'}
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          style={{ padding: '5px 10px', fontSize: '11px' }}
+                          onClick={() => handleStartEdit(candidate)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          style={{ padding: '5px 10px', fontSize: '11px', color: '#c53030', borderColor: '#feb2b2' }}
+                          onClick={() => handleDeleteCandidate(candidate.id, candidate.fullName)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -824,10 +1206,107 @@ function ScreeningPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  // --- Helper to save screening analysis permanently to database ---
+  async function saveScreeningResultToDb(candidateName, email, screeningData, fileName) {
+    try {
+      // 1. Ensure candidate exists in database for this job
+      let candidateId = null;
+      const candListRes = await fetch('/api/candidates');
+      if (candListRes.ok) {
+        const cands = await candListRes.json();
+        const existing = cands.find(
+          (c) => (email && c.email?.toLowerCase() === email.toLowerCase()) || 
+                 (c.fullName?.toLowerCase() === candidateName?.toLowerCase())
+        );
+        if (existing) {
+          candidateId = existing.id;
+        }
+      }
+
+      if (!candidateId) {
+        const createCandRes = await fetch(`/api/candidates/jobs/${form.jobId || '1'}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: candidateName || 'Candidate',
+            email: email || `${(candidateName || 'candidate').toLowerCase().replace(/[^a-z0-9]/g, '.')}@candidate.org`,
+            phone: 'N/A',
+          }),
+        });
+        if (createCandRes.ok) {
+          const created = await createCandRes.json();
+          candidateId = created.id;
+        }
+      }
+
+      if (candidateId) {
+        // 2. Persist screening result to database
+        const score = screeningData.matchScore != null ? screeningData.matchScore : 50.0;
+        await fetch(`/api/screening-results/candidates/${candidateId}?fileName=${encodeURIComponent(fileName || 'resume.pdf')}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            matchScore: score,
+            matchedSkills: JSON.stringify(screeningData.matchedSkills || []),
+            evidence: JSON.stringify(screeningData.evidence || []),
+            explanation: screeningData.explanation || 'Screening evaluated successfully.',
+          }),
+        });
+      }
+    } catch (persistErr) {
+      console.warn('Auto-save to database failed:', persistErr);
+    }
+  }
+
+  // --- Fallback search for past database result if LLM is offline ---
+  async function findCachedDatabaseResult(candidateName, email) {
+    try {
+      const candListRes = await fetch('/api/candidates');
+      if (!candListRes.ok) return null;
+      const cands = await candListRes.json();
+      const match = cands.find(
+        (c) => (email && c.email?.toLowerCase() === email.toLowerCase()) ||
+               (candidateName && c.fullName?.toLowerCase() === candidateName?.toLowerCase())
+      );
+      if (!match) return null;
+
+      const resResults = await fetch(`/api/screening-results/candidates/${match.id}`);
+      if (!resResults.ok) return null;
+      const history = await resResults.json();
+      if (!Array.isArray(history) || history.length === 0) return null;
+
+      const latest = history[history.length - 1];
+      let parsedMatched = [];
+      let parsedEvidence = [];
+
+      try { parsedMatched = JSON.parse(latest.matchedSkills || '[]'); } catch { parsedMatched = (latest.matchedSkills || '').split(',').map(s => s.trim()).filter(Boolean); }
+      try { parsedEvidence = JSON.parse(latest.evidence || '[]'); } catch { parsedEvidence = latest.evidence ? [{ criterion: 'Cached Evidence', resumeEvidence: latest.evidence, assessment: 'Retrieved from database' }] : []; }
+
+      return {
+        status: 'CACHED (LLM OFFLINE)',
+        jobId: form.jobId || String(match.job?.id || '1'),
+        matchScore: latest.matchScore,
+        matchedSkills: parsedMatched,
+        missingSkills: [],
+        evidence: parsedEvidence,
+        explanation: latest.explanation + ' [Note: Displayed from past database evaluation because live AI service is currently offline].',
+        profile: {
+          name: match.fullName,
+          email: match.email,
+          skills: parsedMatched,
+        },
+        isFallback: true,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   // --- Single Upload Handler ---
   async function handleSingleScreenSubmit(e) {
     e.preventDefault();
     setError('');
+    setDbSuccessMsg('');
     setSingleResult(null);
 
     if (!resumeFile) {
@@ -854,19 +1333,45 @@ function ScreeningPage() {
         formData.append('required_skills', JSON.stringify(skillsArray));
       }
 
-      const res = await fetch('/api/v1/screen-resume', {
-        method: 'POST',
-        body: formData,
-      });
+      let data = null;
+      let usedFallback = false;
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => null);
-        throw new Error(errJson?.detail || `Screening service error (HTTP ${res.status}).`);
+      try {
+        const res = await fetch('/api/v1/screen-resume', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => null);
+          throw new Error(errJson?.detail || `Screening service error (HTTP ${res.status}).`);
+        }
+
+        data = await res.json();
+      } catch (liveAiErr) {
+        // Attempt fallback to cached database result for this resume file name
+        const candidateName = resumeFile.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+        const cached = await findCachedDatabaseResult(candidateName, null);
+        if (cached) {
+          data = cached;
+          usedFallback = true;
+        } else {
+          throw liveAiErr;
+        }
       }
 
-      const data = await res.json();
       setSingleResult(data);
       setViewingResult(data);
+
+      if (!usedFallback) {
+        // Automatically save analysis result permanently to PostgreSQL/H2 database
+        const candidateName = data.profile?.name || resumeFile.name.replace(/\.[^/.]+$/, "");
+        const email = data.profile?.email;
+        await saveScreeningResultToDb(candidateName, email, data, resumeFile.name);
+        setDbSuccessMsg('Screening completed and analysis permanently saved to database!');
+      } else {
+        setDbSuccessMsg('LLM offline: Successfully displayed previously saved analysis from database!');
+      }
     } catch (err) {
       setError(err.message || 'Failed to screen resume.');
     } finally {
@@ -933,24 +1438,39 @@ function ScreeningPage() {
         ? form.requiredSkills.split(',').map((s) => s.trim()).filter(Boolean)
         : [];
 
-      const res = await fetch('/api/v1/screen-resume/screen-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          job_id: form.jobId.trim() || '1',
-          job_title: form.jobTitle.trim(),
-          job_description: form.jobDescription.trim(),
-          required_skills: skillsArray,
-          resume_text: cand.text,
-        }),
-      });
+      let screeningData = null;
+      let usedFallback = false;
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => null);
-        throw new Error(errJson?.detail || 'Screening failed');
+      try {
+        const res = await fetch('/api/v1/screen-resume/screen-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_id: form.jobId.trim() || '1',
+            job_title: form.jobTitle.trim(),
+            job_description: form.jobDescription.trim(),
+            required_skills: skillsArray,
+            resume_text: cand.text,
+          }),
+        });
+
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => null);
+          throw new Error(errJson?.detail || 'Screening failed');
+        }
+
+        screeningData = await res.json();
+      } catch (liveAiErr) {
+        // Fallback to cached analysis if live LLM fails
+        const cached = await findCachedDatabaseResult(cand.candidateName, null);
+        if (cached) {
+          screeningData = cached;
+          usedFallback = true;
+        } else {
+          throw liveAiErr;
+        }
       }
 
-      const screeningData = await res.json();
       setCandidatesQueue((prev) => {
         const copy = [...prev];
         copy[index] = {
@@ -958,9 +1478,17 @@ function ScreeningPage() {
           screeningStatus: 'COMPLETED',
           candidateName: screeningData.profile?.name || copy[index].candidateName,
           result: screeningData,
+          isFallback: usedFallback,
         };
         return copy;
       });
+
+      if (!usedFallback) {
+        // Automatically persist each screened candidate and their analysis result
+        const finalName = screeningData.profile?.name || cand.candidateName;
+        const email = screeningData.profile?.email;
+        await saveScreeningResultToDb(finalName, email, screeningData, cand.fileName);
+      }
     } catch (err) {
       setCandidatesQueue((prev) => {
         const copy = [...prev];
@@ -1046,14 +1574,14 @@ function ScreeningPage() {
             className={uploadMode === 'single' ? 'primary-button' : 'secondary-button'}
             onClick={() => setUploadMode('single')}
           >
-            📄 Single Resume
+            Single Resume
           </button>
           <button
             type="button"
             className={uploadMode === 'batch' ? 'primary-button' : 'secondary-button'}
             onClick={() => setUploadMode('batch')}
           >
-            📦 Batch Archive (.zip)
+            Batch Archive (.zip)
           </button>
         </div>
       </div>
@@ -1067,7 +1595,7 @@ function ScreeningPage() {
 
       {dbSuccessMsg && (
         <div style={{ padding: '14px 18px', background: '#e6f6ee', color: '#176f45', border: '1px solid #b7e8d0', borderRadius: '8px', marginBottom: '18px' }}>
-          <strong>✓ {dbSuccessMsg}</strong>
+          <strong>{dbSuccessMsg}</strong>
         </div>
       )}
 
@@ -1170,7 +1698,7 @@ function ScreeningPage() {
                 disabled={screening}
                 style={{ minWidth: '180px' }}
               >
-                {screening ? 'Evaluating with AI Agents...' : '✧ Run AI Screening'}
+                {screening ? 'Evaluating with AI Agents...' : 'Run AI Screening'}
               </button>
             </div>
           </form>
@@ -1220,7 +1748,7 @@ function ScreeningPage() {
                     onClick={registerBatchCandidatesToDb}
                     disabled={registeringDb || activeBatchIndex !== null}
                   >
-                    {registeringDb ? 'Registering...' : '💾 Add All to Candidates List'}
+                    {registeringDb ? 'Registering...' : 'Add All to Candidates List'}
                   </button>
 
                   <button
@@ -1229,7 +1757,7 @@ function ScreeningPage() {
                     onClick={runAllBatchScreenings}
                     disabled={activeBatchIndex !== null}
                   >
-                    {activeBatchIndex !== null ? 'Processing Batch...' : '▶ Run All Screenings'}
+                    {activeBatchIndex !== null ? 'Processing Batch...' : 'Run All Screenings'}
                   </button>
                 </div>
               </div>
@@ -1272,11 +1800,11 @@ function ScreeningPage() {
                         </td>
                         <td>
                           {item.screeningStatus === 'COMPLETED' ? (
-                            <span style={{ color: '#176f45', fontWeight: 600 }}>✓ Evaluated</span>
+                            <span style={{ color: '#176f45', fontWeight: 600 }}>Evaluated</span>
                           ) : item.screeningStatus === 'PROCESSING' ? (
-                            <span style={{ color: '#2b5a94', fontWeight: 600 }}>⏳ Analyzing...</span>
+                            <span style={{ color: '#2b5a94', fontWeight: 600 }}>Analyzing...</span>
                           ) : item.screeningStatus === 'FAILED' ? (
-                            <span style={{ color: '#a82727', fontWeight: 600 }}>✗ Failed</span>
+                            <span style={{ color: '#a82727', fontWeight: 600 }}>Failed</span>
                           ) : (
                             <span style={{ color: '#718096' }}>Pending</span>
                           )}
@@ -1326,7 +1854,7 @@ function ScreeningPage() {
               onClick={() => setViewingResult(null)}
               style={{ fontSize: '11px' }}
             >
-              ✕ Close Breakdown
+              Close Breakdown
             </button>
           </div>
 
@@ -1359,11 +1887,11 @@ function ScreeningPage() {
           <div className="panel">
             <h3 style={{ margin: '0 0 12px', color: '#1e3a63' }}>Skills & Qualifications Match</h3>
             <div style={{ marginBottom: '14px' }}>
-              <strong style={{ fontSize: '12px', color: '#176f45' }}>✓ Matched Skills:</strong>
+              <strong style={{ fontSize: '12px', color: '#176f45' }}>Matched Skills:</strong>
               <div className="skills-tags-container">
                 {viewingResult.matchedSkills && viewingResult.matchedSkills.length > 0 ? (
                   viewingResult.matchedSkills.map((skill, idx) => (
-                    <span key={idx} className="skill-tag matched">✓ {skill}</span>
+                    <span key={idx} className="skill-tag matched">{skill}</span>
                   ))
                 ) : (
                   <span style={{ color: '#888', fontSize: '12px' }}>None identified</span>
@@ -1372,11 +1900,11 @@ function ScreeningPage() {
             </div>
 
             <div>
-              <strong style={{ fontSize: '12px', color: '#a82727' }}>✗ Missing Required Skills:</strong>
+              <strong style={{ fontSize: '12px', color: '#a82727' }}>Missing Required Skills:</strong>
               <div className="skills-tags-container">
                 {viewingResult.missingSkills && viewingResult.missingSkills.length > 0 ? (
                   viewingResult.missingSkills.map((skill, idx) => (
-                    <span key={idx} className="skill-tag missing">✗ {skill}</span>
+                    <span key={idx} className="skill-tag missing">{skill}</span>
                   ))
                 ) : (
                   <span style={{ color: '#888', fontSize: '12px' }}>All required skills matched!</span>
@@ -1392,7 +1920,7 @@ function ScreeningPage() {
               <div className="profile-grid">
                 {viewingResult.profile.education && viewingResult.profile.education.length > 0 && (
                   <div className="profile-card">
-                    <h4>🎓 Education</h4>
+                    <h4>Education</h4>
                     <ul style={{ margin: 0, paddingLeft: '18px', color: '#4a5d78', fontSize: '12px', lineHeight: 1.6 }}>
                       {viewingResult.profile.education.map((edu, i) => (
                         <li key={i}>
@@ -1406,7 +1934,7 @@ function ScreeningPage() {
 
                 {viewingResult.profile.experience && viewingResult.profile.experience.length > 0 && (
                   <div className="profile-card">
-                    <h4>💼 Experience</h4>
+                    <h4>Experience</h4>
                     <ul style={{ margin: 0, paddingLeft: '18px', color: '#4a5d78', fontSize: '12px', lineHeight: 1.6 }}>
                       {viewingResult.profile.experience.map((exp, i) => (
                         <li key={i}>

@@ -14,7 +14,7 @@ public class CandidateController {
 
     private final CandidateService candidateService;
 
-    public CandidateController(CandidateService candidateService){
+    public CandidateController(CandidateService candidateService) {
         this.candidateService = candidateService;
     }
 
@@ -22,17 +22,36 @@ public class CandidateController {
     public Candidate createCandidate(
             @PathVariable Long jobId,
             @Valid @RequestBody Candidate candidate) {
-                return candidateService.createCandidateForJob(jobId, candidate);
+        return candidateService.createCandidateForJob(jobId, candidate);
     }
 
     @GetMapping
-    public List<Candidate> getAllCandidates(){
+    public List<Candidate> getAllCandidates() {
         return candidateService.getAllCandidates();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Candidate> getCandidateById(@PathVariable Long id){
+    public ResponseEntity<Candidate> getCandidateById(@PathVariable Long id) {
         return candidateService.getCandidateById(id).map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Candidate> updateCandidate(
+            @PathVariable Long id,
+            @Valid @RequestBody Candidate candidate,
+            @RequestParam(required = false) Long jobId) {
+        return candidateService.updateCandidate(id, candidate, jobId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCandidate(@PathVariable Long id) {
+        boolean deleted = candidateService.deleteCandidate(id);
+        if (deleted) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 }
