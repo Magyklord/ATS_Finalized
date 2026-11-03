@@ -11,6 +11,7 @@ class TenPageReportBuilder:
         self.height = 841.89 # A4 height in pt
         self.margin_x = 44.0
         self.content_w = self.width - (2 * self.margin_x) # 507.28 pt
+        self.max_y = 790.0
         self.total_pages = 10
 
     def create_page(self, page_num: int, chapter_title: str):
@@ -40,7 +41,7 @@ class TenPageReportBuilder:
         )
         page.insert_text(
             (self.margin_x, footer_y + 4),
-            "FacultyHire: University Faculty Screening System  •  Confidential Search Committee Dossier",
+            "FacultyHire: University Faculty Screening System  |  Confidential Search Committee Dossier",
             fontsize=7.5,
             fontname="helv",
             color=(0.45, 0.52, 0.60)
@@ -72,53 +73,56 @@ class TenPageReportBuilder:
             pymupdf.Point(self.margin_x + self.content_w, line_y),
             color=(0.85, 0.88, 0.92), width=0.8
         )
-        return line_y + 12
+        return line_y + 10
 
     def draw_subheading(self, page, y: float, title: str) -> float:
         page.insert_text(
             (self.margin_x, y + 11),
             title,
-            fontsize=10.0,
+            fontsize=9.8,
             fontname="helv",
             color=(0.15, 0.30, 0.48)
         )
-        return y + 18
+        return y + 17
 
-    def draw_p(self, page, y: float, text: str, font_size: float = 8.6, line_h: float = 12.5, color=(0.18, 0.22, 0.28)) -> float:
-        tbox = pymupdf.Rect(self.margin_x, y, self.margin_x + self.content_w, y + 180)
+    def draw_p(self, page, y: float, text: str, font_size: float = 8.5, color=(0.18, 0.22, 0.28)) -> float:
+        tbox = pymupdf.Rect(self.margin_x, y, self.margin_x + self.content_w, self.max_y)
         res = page.insert_textbox(
             tbox,
             text,
             fontsize=font_size,
             fontname="helv",
             color=color,
-            lineheight=line_h
+            lineheight=1.15
         )
-        used_h = 180.0 - res if res >= 0 else 30.0
+        used_h = (self.max_y - y) - res if res >= 0 else 22.0
         return y + used_h + 8.0
 
-    def draw_bullet(self, page, y: float, bold_prefix: str, text: str, line_h: float = 12.0) -> float:
-        bullet_mark = "•"
-        page.insert_text((self.margin_x + 4, y + 9), bullet_mark, fontsize=10, fontname="helv", color=(0.15, 0.35, 0.60))
+    def draw_bullet(self, page, y: float, bold_prefix: str, text: str) -> float:
+        # Draw clean vector bullet circle
+        page.draw_circle(pymupdf.Point(self.margin_x + 5, y + 5), 2.2, color=None, fill=(0.15, 0.35, 0.60))
         full_text = f"{bold_prefix}: {text}"
-        tbox = pymupdf.Rect(self.margin_x + 16, y, self.margin_x + self.content_w, y + 80)
+        tbox = pymupdf.Rect(self.margin_x + 14, y, self.margin_x + self.content_w, self.max_y)
         res = page.insert_textbox(
             tbox,
             full_text,
-            fontsize=8.5,
+            fontsize=8.4,
             fontname="helv",
             color=(0.18, 0.22, 0.28),
-            lineheight=line_h
+            lineheight=1.15
         )
-        used_h = 80.0 - res if res >= 0 else 18.0
-        return y + used_h + 4.0
+        used_h = (self.max_y - y) - res if res >= 0 else 16.0
+        return y + used_h + 5.0
 
-    def draw_callout_box(self, page, y: float, title: str, text: str, height: float, tag: str = "CASE STUDY") -> float:
-        c_rect = pymupdf.Rect(self.margin_x, y, self.margin_x + self.content_w, y + height)
+    def draw_callout_box(self, page, y: float, title: str, text: str, min_h: float = 75.0, tag: str = "CASE STUDY") -> float:
+        lines = max(2, len(text) // 85 + 2)
+        box_h = max(min_h, lines * 11.2 + 28.0)
+        
+        c_rect = pymupdf.Rect(self.margin_x, y, self.margin_x + self.content_w, y + box_h)
         page.draw_rect(c_rect, color=(0.80, 0.85, 0.92), fill=(0.95, 0.97, 1.0))
         # Left accent stripe
         page.draw_rect(
-            pymupdf.Rect(self.margin_x, y, self.margin_x + 4, y + height),
+            pymupdf.Rect(self.margin_x, y, self.margin_x + 4, y + box_h),
             color=None, fill=(0.10, 0.30, 0.58)
         )
         page.insert_text(
@@ -128,18 +132,18 @@ class TenPageReportBuilder:
             fontname="helv",
             color=(0.10, 0.30, 0.58)
         )
-        tbox = pymupdf.Rect(self.margin_x + 14, y + 22, self.margin_x + self.content_w - 12, y + height - 6)
+        tbox = pymupdf.Rect(self.margin_x + 14, y + 22, self.margin_x + self.content_w - 12, y + box_h - 4)
         page.insert_textbox(
             tbox,
             text,
             fontsize=8.2,
             fontname="helv",
             color=(0.18, 0.22, 0.28),
-            lineheight=11.2
+            lineheight=1.15
         )
-        return y + height + 10.0
+        return y + box_h + 10.0
 
-    def draw_table(self, page, y: float, headers: list, rows: list, col_ratios: list, row_h: float = 18.0) -> float:
+    def draw_table(self, page, y: float, headers: list, rows: list, col_ratios: list, row_h: float = 17.0) -> float:
         col_widths = [r * self.content_w for r in col_ratios]
         
         # Header
@@ -159,14 +163,14 @@ class TenPageReportBuilder:
             page.draw_rect(r_rect, color=(0.86, 0.89, 0.93), fill=fill_c)
             cur_x = self.margin_x
             for c_idx, cell in enumerate(row):
-                page.insert_text((cur_x + 6, y + 12), str(cell)[:55], fontsize=7.8, fontname="helv", color=(0.18, 0.22, 0.28))
+                page.insert_text((cur_x + 6, y + 12), str(cell)[:65], fontsize=7.6, fontname="helv", color=(0.18, 0.22, 0.28))
                 cur_x += col_widths[c_idx]
             y += row_h
         
         return y + 10.0
 
     def draw_code_box(self, page, y: float, lines: list, caption: str = "") -> float:
-        line_h = 11.5
+        line_h = 11.2
         box_h = len(lines) * line_h + (24.0 if caption else 14.0)
         box_rect = pymupdf.Rect(self.margin_x, y, self.margin_x + self.content_w, y + box_h)
         page.draw_rect(box_rect, color=(0.78, 0.82, 0.88), fill=(0.95, 0.96, 0.98))
@@ -236,7 +240,7 @@ class TenPageReportBuilder:
             "Python FastAPI cognitive engine, operating seamlessly in both cloud-accelerated (Groq LPU) and 100% air-gapped on-premise "
             "(Ollama + deterministic fallback) environments."
         )
-        y = self.draw_p(page, y, abstract_text, font_size=8.4, line_h=12.2)
+        y = self.draw_p(page, y, abstract_text, font_size=8.4)
 
         # Table of Contents
         y = self.draw_section_title(page, y, "Table of Contents")
@@ -287,7 +291,7 @@ class TenPageReportBuilder:
             "quantitative rigor. It isolates specific syllabus gaps ('Ph.D. specialization in core Software Engineering') rather than claiming "
             "a doctorate is missing, calculates a balanced composite score of 72.5%, and formulates 3 tailored committee interview questions."
         )
-        y = self.draw_callout_box(page, y, "Empirical Benchmark: Legacy ATS vs. FacultyHire", case_text, height=138.0, tag="AUDIT CASE STUDY")
+        y = self.draw_callout_box(page, y, "Empirical Benchmark: Legacy ATS vs. FacultyHire", case_text, min_h=110.0, tag="AUDIT CASE STUDY")
 
         y = self.draw_subheading(page, y, "1.3 Design Objectives of FacultyHire")
         y = self.draw_bullet(page, y, "Tripartite Alignment", "Explicitly separate and measure Teaching & Pedagogy, Research Scholarship, and Departmental Domain fit.")
@@ -434,7 +438,7 @@ class TenPageReportBuilder:
             page, y,
             "Zero-Latency Offline Fallback Guarantee",
             "The offline analyzer uses an aggressive 0.5s connection socket timeout for Ollama. If Ollama is inactive or uninstalled, the service automatically fails fast and executes the deterministic academic engine, guaranteeing the recruiter receives an instant (<5ms) dossier without hangs.",
-            height=60.0,
+            min_h=50.0,
             tag="PERFORMANCE"
         )
 
@@ -639,7 +643,7 @@ class TenPageReportBuilder:
             "quantitative doctorates, and equips search committees with tailored probing interview questions. Built with Java Spring Boot 3 "
             "and Python FastAPI, it operates with equal fidelity in high-throughput cloud environments and 100% air-gapped university networks.\""
         )
-        y = self.draw_callout_box(page, y, "One-Minute Presentation Script", pitch_text, height=72.0, tag="ORAL DEFENSE")
+        y = self.draw_callout_box(page, y, "One-Minute Presentation Script", pitch_text, min_h=55.0, tag="ORAL DEFENSE")
 
         y = self.draw_subheading(page, y, "9.2 Anticipated Viva Defense Questions & Model Answers")
         y = self.draw_bullet(page, y, "Q1: Why combine Java and Python instead of building purely in one language?", "Answer: Enterprise systems require distinct tools for distinct workloads. Java Spring Boot provides robust transactional data persistence, ACID guarantees, and audit logging as the System of Record. Python provides world-class NLP, LangGraph orchestration, and document extraction. Decoupling them into microservices allows each to scale independently.")
@@ -659,7 +663,7 @@ class TenPageReportBuilder:
         )
 
     def generate(self):
-        print("Building 10-page master technical report...")
+        print("Building 10-page master technical report with corrected typography...")
         self.build_page_1()
         self.build_page_2()
         self.build_page_3()
