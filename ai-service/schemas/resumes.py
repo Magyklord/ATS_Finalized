@@ -32,6 +32,15 @@ class Evidence(BaseModel):
     resumeEvidence: str
     assessment: str
 
+class AcademicBreakdown(BaseModel):
+    teachingScore: Optional[float] = Field(default=None, ge=0, le=100)
+    researchScore: Optional[float] = Field(default=None, ge=0, le=100)
+    domainScore: Optional[float] = Field(default=None, ge=0, le=100)
+
+class CourseReadiness(BaseModel):
+    day1Ready: List[str] = Field(default_factory=list)
+    curriculumGaps: List[str] = Field(default_factory=list)
+
 class ScreeningResult(BaseModel):
     status: str = "COMPLETED"
     jobId: str
@@ -41,3 +50,7 @@ class ScreeningResult(BaseModel):
     evidence: List[Evidence] = Field(default_factory=list)
     explanation: str
     profile: ResumeProfile
+    academicBreakdown: Optional[AcademicBreakdown] = None
+    courseReadiness: Optional[CourseReadiness] = None
+    committeeQuestions: List[str] = Field(default_factory=list)
+    recommendedRank: Optional[str] = None

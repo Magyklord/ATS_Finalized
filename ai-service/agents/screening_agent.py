@@ -51,15 +51,18 @@ class SchemaValidationError(ScreeningError):
 
 
 SYSTEM_INSTRUCTIONS = (
-    "You are a careful resume screening assistant for university faculty recruitment. "
-    "Use only the supplied resume text and job description. "
-    "Never invent candidate details, credentials, skills, experience, publications, or evidence. "
-    "Assess job-related qualifications only. Do not infer or use protected characteristics. "
-    "If information is absent, leave relevant profile fields empty. "
-    "matchScore must be an integer or float between 0 and 100 representing how well the candidate "
-    "meets the job requirements, or null if the resume cannot meaningfully be assessed. "
-    "Evidence must quote or closely identify text directly from the resume. "
-    "You must return ONLY a valid JSON object matching the requested schema."
+    "You are a rigorous university faculty recruitment committee evaluator. "
+    "Evaluate candidate dossiers using academic criteria: Teaching & Pedagogy, Research & Publications, "
+    "and Department Curriculum Alignment. "
+    "ACADEMIC DEGREE RULES: "
+    "1. Distinguish between terminal degree attainment (holding a Ph.D.) and discipline specialization. "
+    "2. NEVER state 'PhD is missing' or list 'PhD' under missingSkills if the candidate holds a Ph.D. in an allied or adjacent field "
+    "(such as Applied Mathematics, Computational Science, Statistics, Electrical Engineering, or Physics). "
+    "3. Award research and quantitative credit for allied doctorates (75% of education weight). "
+    "4. In missingSkills, specify only the missing discipline area (e.g., 'PhD specialization in Core Software Engineering') rather than a blanket 'PhD'. "
+    "5. Populate academicBreakdown (teachingScore, researchScore, domainScore), courseReadiness (day1Ready, curriculumGaps), "
+    "committeeQuestions (3 tailored academic interview questions), and recommendedRank. "
+    "Return ONLY a valid JSON object matching the requested schema."
 )
 
 
@@ -84,6 +87,32 @@ def screen_resume(
     Screen a candidate's resume text against job requirements.
     Uses the LangGraph multi-agent framework by default.
     """
+    backend_mode = os.getenv("ANALYZER_BACKEND", "groq").lower().strip()
+
+    # Direct offline analyzer mode
+    if backend_mode in ["local", "offline", "ollama"]:
+        logger.info("ANALYZER_BACKEND='%s': executing local offline analyzer.", backend_mode)
+        from agents.offline_analyzer import run_offline_screening
+        return run_offline_screening(
+            resume_text=resume_text,
+            job_id=str(job_id),
+            job_title=job_title,
+            job_description=job_description,
+            required_skills=required_skills,
+        )
+
+    # In auto mode, if Groq API key is missing, fall back to offline analyzer immediately
+    if backend_mode == "auto" and client is None and not os.getenv("GROQ_API_KEY", "").strip():
+        logger.info("ANALYZER_BACKEND='auto' and GROQ_API_KEY missing; executing offline analyzer.")
+        from agents.offline_analyzer import run_offline_screening
+        return run_offline_screening(
+            resume_text=resume_text,
+            job_id=str(job_id),
+            job_title=job_title,
+            job_description=job_description,
+            required_skills=required_skills,
+        )
+
     if client is None:
         client = get_groq_client()
 
@@ -153,6 +182,7 @@ Ensure:
                     },
                 },
                 temperature=0.0,
+                max_tokens=700,
             )
         except groq.BadRequestError as bad_req:
             # If json_schema is rejected or fails schema validation, fallback to json_object mode
@@ -177,6 +207,16 @@ Ensure:
         logger.warning("Groq rate limit or quota exceeded.")
         raise RateLimitError("Groq rate limit or quota exceeded. Please retry later.") from exc
     except (groq.APITimeoutError, groq.APIConnectionError) as exc:
+        if backend_mode == "auto":
+            logger.warning("Groq network connection/timeout error (%s); auto-switching to offline analyzer.", type(exc).__name__)
+            from agents.offline_analyzer import run_offline_screening
+            return run_offline_screening(
+                resume_text=resume_text,
+                job_id=str(job_id),
+                job_title=job_title,
+                job_description=job_description,
+                required_skills=required_skills,
+            )
         logger.error("Groq API connection or timeout failure: %s", type(exc).__name__)
         raise TimeoutError(f"Network timeout or connection error communicating with Groq: {type(exc).__name__}") from exc
     except groq.BadRequestError as exc:

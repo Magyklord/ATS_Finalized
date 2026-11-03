@@ -1168,6 +1168,13 @@ function ScreeningPage() {
   const [viewingResult, setViewingResult] = useState(null);
   const [error, setError] = useState('');
 
+  // Academic Stepper & Progressive Disclosure State
+  const [singleProgress, setSingleProgress] = useState(0);
+  const [singlePhaseText, setSinglePhaseText] = useState('');
+  const [activeDossierTab, setActiveDossierTab] = useState('subscores');
+  const [isDossierOpen, setIsDossierOpen] = useState(true);
+  const [copiedQuestions, setCopiedQuestions] = useState(false);
+
   useEffect(() => {
     async function loadJobs() {
       try {
@@ -1319,6 +1326,28 @@ function ScreeningPage() {
     }
 
     setScreening(true);
+    setSingleProgress(12);
+    setSinglePhaseText('Phase 1 of 4: Extracting academic credentials & peer-reviewed citations...');
+
+    const progressTimer = setInterval(() => {
+      setSingleProgress((prev) => {
+        if (prev < 30) {
+          setSinglePhaseText('Phase 1 of 4: Extracting academic credentials & peer-reviewed citations...');
+          return prev + 6;
+        } else if (prev < 60) {
+          setSinglePhaseText('Phase 2 of 4: Assessing teaching tenure, ABET readiness & thesis mentorship...');
+          return prev + 5;
+        } else if (prev < 82) {
+          setSinglePhaseText('Phase 3 of 4: Benchmarking against faculty rank & curriculum gaps...');
+          return prev + 3;
+        } else if (prev < 94) {
+          setSinglePhaseText('Phase 4 of 4: Synthesizing academic dossier & committee interview guide...');
+          return prev + 1;
+        }
+        return prev;
+      });
+    }, 450);
+
     try {
       const skillsArray = form.requiredSkills
         ? form.requiredSkills.split(',').map((s) => s.trim()).filter(Boolean)
@@ -1375,6 +1404,8 @@ function ScreeningPage() {
     } catch (err) {
       setError(err.message || 'Failed to screen resume.');
     } finally {
+      if (typeof progressTimer !== 'undefined') clearInterval(progressTimer);
+      setSingleProgress(100);
       setScreening(false);
     }
   }
@@ -1698,10 +1729,41 @@ function ScreeningPage() {
                 disabled={screening}
                 style={{ minWidth: '180px' }}
               >
-                {screening ? 'Evaluating with AI Agents...' : 'Run AI Screening'}
+                {screening ? 'Evaluating with Academic Engine...' : 'Run AI Screening'}
               </button>
             </div>
           </form>
+
+          {screening && (
+            <div className="screening-progress-card">
+              <div className="progress-header">
+                <span className="progress-title">Evaluating Candidate Academic Dossier</span>
+                <span className="progress-percent">{Math.min(100, Math.round(singleProgress))}%</span>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${Math.min(100, Math.round(singleProgress))}%` }}></div>
+              </div>
+              <div className="progress-phase-label">{singlePhaseText}</div>
+              <ul className="progress-stepper-list">
+                <li className={`progress-step-item ${singleProgress >= 25 ? 'completed' : singleProgress >= 10 ? 'active' : ''}`}>
+                  <span className={`step-indicator ${singleProgress >= 25 ? 'completed' : singleProgress >= 10 ? 'active' : ''}`}>1</span>
+                  <span>Extracting academic credentials, doctoral rigor, and citations</span>
+                </li>
+                <li className={`progress-step-item ${singleProgress >= 55 ? 'completed' : singleProgress >= 30 ? 'active' : ''}`}>
+                  <span className={`step-indicator ${singleProgress >= 55 ? 'completed' : singleProgress >= 30 ? 'active' : ''}`}>2</span>
+                  <span>Evaluating teaching tenure, ABET readiness, and thesis mentorship</span>
+                </li>
+                <li className={`progress-step-item ${singleProgress >= 82 ? 'completed' : singleProgress >= 60 ? 'active' : ''}`}>
+                  <span className={`step-indicator ${singleProgress >= 82 ? 'completed' : singleProgress >= 60 ? 'active' : ''}`}>3</span>
+                  <span>Benchmarking against faculty rank requirements and curriculum gaps</span>
+                </li>
+                <li className={`progress-step-item ${singleProgress >= 95 ? 'completed' : singleProgress >= 82 ? 'active' : ''}`}>
+                  <span className={`step-indicator ${singleProgress >= 95 ? 'completed' : singleProgress >= 82 ? 'active' : ''}`}>4</span>
+                  <span>Synthesizing academic dossier and committee interview questions</span>
+                </li>
+              </ul>
+            </div>
+          )}
         </section>
       )}
 
@@ -1843,138 +1905,287 @@ function ScreeningPage() {
         </section>
       )}
 
-      {/* Detailed Screening Result View */}
+      {/* Detailed Screening Result View: Progressive Disclosure Academic Dossier */}
       {viewingResult && (
         <section className="screening-results-container">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, color: '#1e3a63' }}>Assessment Breakdown</h3>
+            <h3 style={{ margin: 0, color: '#1e3a63', fontSize: '16px' }}>Academic Candidate Assessment</h3>
             <button
               type="button"
               className="secondary-button"
               onClick={() => setViewingResult(null)}
               style={{ fontSize: '11px' }}
             >
-              Close Breakdown
+              Close Dossier
             </button>
           </div>
 
-          {/* Match Score Banner */}
+          {/* Tier 1: Glanceable Executive Card */}
           <div className="score-banner">
             <div className="score-banner-left">
-              <h2>Screening Assessment: {viewingResult.status || 'COMPLETED'}</h2>
-              <p>Job Reference: <strong>#{viewingResult.jobId}</strong></p>
-              {viewingResult.profile?.name && (
-                <p style={{ marginTop: '4px' }}>
-                  Candidate: <strong>{viewingResult.profile.name}</strong> {viewingResult.profile.email ? `(${viewingResult.profile.email})` : ''}
-                </p>
+              <h2>{viewingResult.profile?.name || 'Candidate Dossier'}</h2>
+              <p>Job Reference: <strong>#{viewingResult.jobId}</strong> {viewingResult.profile?.email ? `| Email: ${viewingResult.profile.email}` : ''}</p>
+              {viewingResult.recommendedRank && (
+                <div className="rank-pill">
+                  <span>Recommended Action:</span> <strong>{viewingResult.recommendedRank}</strong>
+                </div>
               )}
             </div>
             <div className="score-circle">
-              {viewingResult.matchScore != null ? Math.round(viewingResult.matchScore) : 'N/A'}
-              <span>MATCH SCORE</span>
+              {viewingResult.matchScore != null ? Math.round(viewingResult.matchScore) : 'N/A'}%
+              <span>OVERALL</span>
             </div>
           </div>
 
-          {/* AI Explanation Panel */}
+          {/* Three-Pillar Academic Balance Meter (Tier 1 Glanceable) */}
+          {viewingResult.academicBreakdown && (
+            <div className="academic-balance-container">
+              <div className="academic-balance-title">Three-Pillar Academic Balance</div>
+              <div className="balance-meters-grid">
+                <div className="balance-meter">
+                  <div className="balance-meter-labels">
+                    <span>Teaching & Pedagogy</span>
+                    <span>{Math.round(viewingResult.academicBreakdown.teachingScore || 0)}%</span>
+                  </div>
+                  <div className="balance-meter-track">
+                    <div className="balance-meter-bar teaching" style={{ width: `${viewingResult.academicBreakdown.teachingScore || 0}%` }}></div>
+                  </div>
+                </div>
+                <div className="balance-meter">
+                  <div className="balance-meter-labels">
+                    <span>Research & Publications</span>
+                    <span>{Math.round(viewingResult.academicBreakdown.researchScore || 0)}%</span>
+                  </div>
+                  <div className="balance-meter-track">
+                    <div className="balance-meter-bar research" style={{ width: `${viewingResult.academicBreakdown.researchScore || 0}%` }}></div>
+                  </div>
+                </div>
+                <div className="balance-meter">
+                  <div className="balance-meter-labels">
+                    <span>Domain Specialization</span>
+                    <span>{Math.round(viewingResult.academicBreakdown.domainScore || 0)}%</span>
+                  </div>
+                  <div className="balance-meter-track">
+                    <div className="balance-meter-bar domain" style={{ width: `${viewingResult.academicBreakdown.domainScore || 0}%` }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Executive Rationale */}
           {viewingResult.explanation && (
-            <div className="panel">
-              <h3 style={{ margin: '0 0 10px', color: '#1e3a63' }}>Executive Rationale & Assessment</h3>
-              <p style={{ margin: 0, lineHeight: 1.7, color: '#3b506f' }}>{viewingResult.explanation}</p>
+            <div className="panel" style={{ background: '#f8fafc' }}>
+              <h3 style={{ margin: '0 0 8px', color: '#1e3a63', fontSize: '13px' }}>Executive Committee Rationale</h3>
+              <p style={{ margin: 0, lineHeight: 1.6, color: '#334155', fontSize: '13px' }}>{viewingResult.explanation}</p>
             </div>
           )}
 
-          {/* Skills Breakdown */}
-          <div className="panel">
-            <h3 style={{ margin: '0 0 12px', color: '#1e3a63' }}>Skills & Qualifications Match</h3>
-            <div style={{ marginBottom: '14px' }}>
-              <strong style={{ fontSize: '12px', color: '#176f45' }}>Matched Skills:</strong>
-              <div className="skills-tags-container">
-                {viewingResult.matchedSkills && viewingResult.matchedSkills.length > 0 ? (
-                  viewingResult.matchedSkills.map((skill, idx) => (
-                    <span key={idx} className="skill-tag matched">{skill}</span>
-                  ))
-                ) : (
-                  <span style={{ color: '#888', fontSize: '12px' }}>None identified</span>
-                )}
-              </div>
-            </div>
+          {/* Tier 2: Progressive Disclosure Dossier Drawer & Tabs */}
+          <div className="dossier-drawer">
+            <button
+              type="button"
+              className={`dossier-toggle-bar ${isDossierOpen ? 'open' : ''}`}
+              onClick={() => setIsDossierOpen(!isDossierOpen)}
+            >
+              <span className="dossier-toggle-title">Academic Dossier & Search Committee Tools</span>
+              <span className="dossier-toggle-hint">
+                {isDossierOpen ? 'Hide Reviewer Tools [-]' : 'View Sub-Score Evidence, Course Readiness & Interview Questions [+]'}
+              </span>
+            </button>
 
-            <div>
-              <strong style={{ fontSize: '12px', color: '#a82727' }}>Missing Required Skills:</strong>
-              <div className="skills-tags-container">
-                {viewingResult.missingSkills && viewingResult.missingSkills.length > 0 ? (
-                  viewingResult.missingSkills.map((skill, idx) => (
-                    <span key={idx} className="skill-tag missing">{skill}</span>
-                  ))
-                ) : (
-                  <span style={{ color: '#888', fontSize: '12px' }}>All required skills matched!</span>
-                )}
-              </div>
-            </div>
+            {isDossierOpen && (
+              <>
+                <div className="dossier-tabs-nav">
+                  <button
+                    type="button"
+                    className={`dossier-tab-btn ${activeDossierTab === 'subscores' ? 'active' : ''}`}
+                    onClick={() => setActiveDossierTab('subscores')}
+                  >
+                    Sub-Scores & Evidence
+                  </button>
+                  <button
+                    type="button"
+                    className={`dossier-tab-btn ${activeDossierTab === 'courses' ? 'active' : ''}`}
+                    onClick={() => setActiveDossierTab('courses')}
+                  >
+                    Course Teaching Readiness
+                  </button>
+                  <button
+                    type="button"
+                    className={`dossier-tab-btn ${activeDossierTab === 'questions' ? 'active' : ''}`}
+                    onClick={() => setActiveDossierTab('questions')}
+                  >
+                    Committee Interview Pack
+                  </button>
+                </div>
+
+                <div className="dossier-tab-content">
+                  {/* Tab 1: Sub-Score Logic, Skills, Evidence & Profile */}
+                  {activeDossierTab === 'subscores' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {/* Skills Matrix */}
+                      <div>
+                        <strong style={{ fontSize: '12px', color: '#176f45' }}>Direct Competencies Matched:</strong>
+                        <div className="skills-tags-container" style={{ marginBottom: '14px' }}>
+                          {viewingResult.matchedSkills && viewingResult.matchedSkills.length > 0 ? (
+                            viewingResult.matchedSkills.map((skill, idx) => (
+                              <span key={idx} className="skill-tag matched">{skill}</span>
+                            ))
+                          ) : (
+                            <span style={{ color: '#888', fontSize: '12px' }}>None identified</span>
+                          )}
+                        </div>
+
+                        <strong style={{ fontSize: '12px', color: '#a82727' }}>Competency / Discipline Gaps:</strong>
+                        <div className="skills-tags-container">
+                          {viewingResult.missingSkills && viewingResult.missingSkills.length > 0 ? (
+                            viewingResult.missingSkills.map((skill, idx) => (
+                              <span key={idx} className="skill-tag missing">{skill}</span>
+                            ))
+                          ) : (
+                            <span style={{ color: '#888', fontSize: '12px' }}>All required competencies verified</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Evidence Citations Table */}
+                      {viewingResult.evidence && viewingResult.evidence.length > 0 && (
+                        <div>
+                          <h4 style={{ margin: '0 0 10px', color: '#1e3a63', fontSize: '13px' }}>Resume Evidence & Verification</h4>
+                          <div style={{ overflowX: 'auto' }}>
+                            <table className="evidence-table">
+                              <thead>
+                                <tr>
+                                  <th style={{ width: '28%' }}>Criterion</th>
+                                  <th style={{ width: '38%' }}>Direct Resume Evidence</th>
+                                  <th style={{ width: '34%' }}>Academic Assessment</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {viewingResult.evidence.map((ev, i) => (
+                                  <tr key={i}>
+                                    <td><strong>{ev.criterion}</strong></td>
+                                    <td><span className="evidence-quote">"{ev.resumeEvidence}"</span></td>
+                                    <td>{ev.assessment}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Extracted Profile */}
+                      {viewingResult.profile && (
+                        <div>
+                          <h4 style={{ margin: '0 0 10px', color: '#1e3a63', fontSize: '13px' }}>Candidate Credentials (Extracted)</h4>
+                          <div className="profile-grid">
+                            {viewingResult.profile.education && viewingResult.profile.education.length > 0 && (
+                              <div className="profile-card">
+                                <h4>Education History</h4>
+                                <ul style={{ margin: 0, paddingLeft: '18px', color: '#4a5d78', fontSize: '12px', lineHeight: 1.6 }}>
+                                  {viewingResult.profile.education.map((edu, i) => (
+                                    <li key={i}>
+                                      <strong>{edu.degree || 'Degree'}</strong> in {edu.field || 'N/A'}{' '}
+                                      {edu.institution ? `(${edu.institution})` : ''} {edu.year ? `— ${edu.year}` : ''}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {viewingResult.profile.experience && viewingResult.profile.experience.length > 0 && (
+                              <div className="profile-card">
+                                <h4>Academic Appointments & Experience</h4>
+                                <ul style={{ margin: 0, paddingLeft: '18px', color: '#4a5d78', fontSize: '12px', lineHeight: 1.6 }}>
+                                  {viewingResult.profile.experience.map((exp, i) => (
+                                    <li key={i}>
+                                      <strong>{exp.role || 'Role'}</strong> at {exp.organization || 'Organization'}{' '}
+                                      {exp.duration ? `(${exp.duration})` : ''}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tab 2: Course Teaching Readiness */}
+                  {activeDossierTab === 'courses' && (
+                    <div className="courses-container">
+                      <div>
+                        <div className="course-group-title ready">Day-1 Ready to Teach:</div>
+                        <div className="skills-tags-container">
+                          {viewingResult.courseReadiness?.day1Ready && viewingResult.courseReadiness.day1Ready.length > 0 ? (
+                            viewingResult.courseReadiness.day1Ready.map((course, idx) => (
+                              <span key={idx} className="course-tag ready">{course}</span>
+                            ))
+                          ) : (
+                            <span style={{ color: '#64748b', fontSize: '12px' }}>Standard foundational undergraduate courses based on profile</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="course-group-title gap">Curriculum Development Needed / Gaps:</div>
+                        <div className="skills-tags-container">
+                          {viewingResult.courseReadiness?.curriculumGaps && viewingResult.courseReadiness.curriculumGaps.length > 0 ? (
+                            viewingResult.courseReadiness.curriculumGaps.map((course, idx) => (
+                              <span key={idx} className="course-tag gap">{course}</span>
+                            ))
+                          ) : (
+                            <span style={{ color: '#64748b', fontSize: '12px' }}>No major curriculum gaps identified</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 3: Search Committee Interview Pack */}
+                  {activeDossierTab === 'questions' && (
+                    <div>
+                      {viewingResult.committeeQuestions && viewingResult.committeeQuestions.length > 0 ? (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#475569' }}>
+                              Tailored probing questions for the faculty search committee interview:
+                            </p>
+                            <button
+                              type="button"
+                              className="copy-btn"
+                              onClick={() => {
+                                const qText = viewingResult.committeeQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n\n');
+                                navigator.clipboard.writeText(qText);
+                                setCopiedQuestions(true);
+                                setTimeout(() => setCopiedQuestions(false), 2500);
+                              }}
+                            >
+                              {copiedQuestions ? 'Questions Copied' : 'Copy All Questions'}
+                            </button>
+                          </div>
+
+                          <div className="questions-list">
+                            {viewingResult.committeeQuestions.map((q, idx) => (
+                              <div key={idx} className="question-card">
+                                <div className="question-number">Question {idx + 1}</div>
+                                <div>{q}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p style={{ color: '#64748b', fontSize: '12px' }}>General interview questions will be generated upon full dossier review.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
-
-          {/* Candidate Profile */}
-          {viewingResult.profile && (
-            <div className="panel">
-              <h3 style={{ margin: '0 0 14px', color: '#1e3a63' }}>Candidate Profile (Extracted from Resume)</h3>
-              <div className="profile-grid">
-                {viewingResult.profile.education && viewingResult.profile.education.length > 0 && (
-                  <div className="profile-card">
-                    <h4>Education</h4>
-                    <ul style={{ margin: 0, paddingLeft: '18px', color: '#4a5d78', fontSize: '12px', lineHeight: 1.6 }}>
-                      {viewingResult.profile.education.map((edu, i) => (
-                        <li key={i}>
-                          <strong>{edu.degree || 'Degree'}</strong> in {edu.field || 'N/A'}{' '}
-                          {edu.institution ? `(${edu.institution})` : ''} {edu.year ? `— ${edu.year}` : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {viewingResult.profile.experience && viewingResult.profile.experience.length > 0 && (
-                  <div className="profile-card">
-                    <h4>Experience</h4>
-                    <ul style={{ margin: 0, paddingLeft: '18px', color: '#4a5d78', fontSize: '12px', lineHeight: 1.6 }}>
-                      {viewingResult.profile.experience.map((exp, i) => (
-                        <li key={i}>
-                          <strong>{exp.role || 'Role'}</strong> at {exp.organization || 'Organization'}{' '}
-                          {exp.duration ? `(${exp.duration})` : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Evidence Citations */}
-          {viewingResult.evidence && viewingResult.evidence.length > 0 && (
-            <div className="panel">
-              <h3 style={{ margin: '0 0 10px', color: '#1e3a63' }}>Evidence & Resume Citations</h3>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="evidence-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '25%' }}>Criterion</th>
-                      <th style={{ width: '40%' }}>Resume Evidence</th>
-                      <th style={{ width: '35%' }}>AI Assessment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {viewingResult.evidence.map((ev, i) => (
-                      <tr key={i}>
-                        <td><strong>{ev.criterion}</strong></td>
-                        <td><span className="evidence-quote">"{ev.resumeEvidence}"</span></td>
-                        <td>{ev.assessment}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </section>
       )}
     </div>

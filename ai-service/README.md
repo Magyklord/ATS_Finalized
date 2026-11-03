@@ -1,24 +1,18 @@
-# AI ATS Resume Screening Microservice (LangGraph + Groq Integration)
+# AI ATS Resume Screening Microservice (LangGraph + Groq + Offline Local LLM)
 
-This FastAPI microservice receives real PDF or DOCX resumes (individually or in batch ZIP archives), extracts text with reliable whitespace and newlines, and uses an autonomous **LangGraph 4-Agent pipeline** powered by Groq (`openai/gpt-oss-20b`) to perform structured screening against faculty job postings.
+This FastAPI microservice receives PDF or DOCX resumes (individually or in batch ZIP archives), extracts text with reliable whitespace and formatting preservation, and performs structured academic faculty evaluations against job postings.
 
-The Java Spring Boot backend remains the system of record for PostgreSQL data, candidate records, and persistence.
+The service supports two primary execution modes:
+1. **Primary Cloud Mode:** High-speed cloud evaluation via Groq API (`openai/gpt-oss-20b`) with sub-2-second latency.
+2. **Offline Air-Gapped Mode:** Zero-network local evaluation via Ollama (`llama3.2:3b`) with instant deterministic rule-based safety engine fallback (<20ms).
 
 ---
 
 ## 1. Quick Start
 
-### Prerequisites
-- Python 3.10+ installed
-- A Groq API key (sign up at [console.groq.com](https://console.groq.com/keys))
-
-### Step 1: Navigate to AI Service Directory
+### Step 1: Navigate and Setup Virtual Environment
 ```bash
 cd ai-service
-```
-
-### Step 2: Create and Activate Virtual Environment
-```bash
 python -m venv .venv
 
 # Windows:
@@ -26,67 +20,59 @@ python -m venv .venv
 
 # Linux/macOS:
 source .venv/bin/activate
-```
 
-### Step 3: Install Dependencies
-```bash
 pip install -r requirements.txt
 ```
-*(Note: `requirements.txt` is also accessible directly from the repository root)*
 
-### Step 4: Configure Environment Variables
-Create `.env` (or place it at the root folder):
+### Step 2: Configure Environment (.env)
 ```dotenv
-GROQ_API_KEY=gsk_your_groq_api_key_here
+# Cloud Primary (Groq)
+GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=openai/gpt-oss-20b
 MAX_RESUME_SIZE_MB=10
+
+# Backend Mode: 'groq' (default), 'local' (offline), or 'auto' (fallback on network loss)
+ANALYZER_BACKEND=groq
+
+# Local Offline Engine (Ollama)
+OLLAMA_HOST=http://127.0.0.1:11434
+LOCAL_LLM_MODEL=llama3.2:3b
+LOCAL_LLM_TIMEOUT=60.0
 ```
 
-### Step 5: Start the Microservice
+### Step 3: Launch Service
 ```bash
+# Standard Online Launch:
 python -m uvicorn main:app --host 127.0.0.1 --port 8001 --reload
+
+# Or use dedicated batch scripts:
+# scripts\start_ai.bat          (Cloud Groq mode)
+# scripts\start_ai_offline.bat  (Local Ollama / Offline mode)
 ```
 
 - **Health Check:** `http://127.0.0.1:8001/health`
-- **Swagger Interactive Docs:** `http://127.0.0.1:8001/docs`
+- **Interactive Swagger Docs:** `http://127.0.0.1:8001/docs`
 
 ---
 
-## 2. API Endpoints
+## 2. Academic Recruiter Features
 
-### `GET /health`
-Returns service status.
-
-### `POST /api/v1/screen-resume`
-Screens an individual uploaded resume (`multipart/form-data`):
-- `file`: PDF or DOCX resume
-- `job_id`: numeric string (e.g. `"1"`)
-- `job_title`: string (e.g. `"Assistant Professor - Computer Science"`)
-- `job_description`: string (job requirements, responsibilities, qualifications)
-- `required_skills`: JSON array of strings (e.g. `'["Python", "Machine Learning", "Ph.D."]'`)
-
-### `POST /api/v1/screen-resume/upload-zip`
-Uploads a `.zip` archive containing multiple PDF/DOCX resumes, automatically unzips, parses text, and returns candidates ready for batch or one-by-one screening.
-
-### `POST /api/v1/screen-resume/screen-text`
-Screens extracted resume text directly using numeric `job_id`.
+- **Three-Pillar Scoring:** Produces individual ratings for `teachingScore`, `researchScore`, and `domainScore`, plus an overall weighted score.
+- **Discipline-Aware Degree Alignment:** Recognizes terminal doctoral degrees in allied STEM fields (Applied Math, Computational Science, Physics, EE) and awards 75% transfer credit instead of reporting false-negative "missing PhD" errors.
+- **Course Teaching Feasibility:** Returns lists of `day1Ready` foundational courses and `curriculumGaps`.
+- **Search Committee Probing Questions:** Generates 3 tailored interview questions per candidate.
 
 ---
 
-## 3. Running Automated Tests
+## 3. Automated Tests
 
-Run the full pytest suite with verbose output:
+Run the full pytest suite:
 ```bash
 python -m pytest -v
 ```
 
-All 18 unit and integration tests run with mocked calls, validating:
-- Service health endpoint
-- Missing / invalid API key error handling (HTTP 503 / 502)
-- Rate limiting and quota handling (HTTP 429)
-- Connection timeout handling (HTTP 504)
-- Model errors & schema validation failures (HTTP 502)
-- Real PDF and DOCX text extraction with valid newlines
-- Batch ZIP archive extraction and error recovery
-- Numeric job ID handling
-- Temporary file cleanup on Windows
+**22 / 22 Tests Passing:**
+- `tests/test_endpoint_validation.py`: Input schema validation and unsupported file rejections.
+- `tests/test_groq_screening.py`: Mocked multi-agent screening, rate limit handling, network timeout handling, and temporary file cleanups.
+- `tests/test_health.py`: Service health endpoint.
+- `tests/test_offline_analyzer.py`: Deterministic academic engine, offline backend routing, automated network fallback, and offline text screening.
