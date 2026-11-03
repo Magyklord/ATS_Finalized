@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from langgraph.graph import StateGraph, START, END
 from langchain_groq import ChatGroq
-from schemas.resumes import ScreeningResult, ResumeProfile, Evidence, Education, Experience
+from schemas.resumes import ScreeningResult, ResumeProfile, Evidence, Education, Experience, AcademicBreakdown
 
 # Ensure .env is loaded
 backend_dir = Path(__file__).resolve().parent.parent
@@ -35,6 +35,9 @@ class MultiAgentScreeningState(TypedDict):
     # Output of Agent 4 (Scoring & Synthesis Agent)
     match_score: Optional[float]
     explanation: Optional[str]
+    academic_breakdown: Optional[Dict[str, float]]
+    committee_questions: Optional[List[str]]
+    recommended_rank: Optional[str]
     status: str
 
 
@@ -198,9 +201,42 @@ Return a JSON object:
         }
 
 
+def generate_committee_questions(
+    profile: Optional[Dict[str, Any]] = None,
+    job_title: str = "Faculty Position",
+    missing_skills: Optional[List[str]] = None,
+    evidence: Optional[List[Dict[str, str]]] = None,
+) -> List[str]:
+    """Generate 3 tailored academic search committee probing questions."""
+    prof = profile or {}
+    name = prof.get("name") or "Candidate"
+    last_name = name.split()[-1] if name and name != "Candidate" else "Candidate"
+    degrees = [e.get("degree", "") for e in prof.get("education", []) if isinstance(e, dict)]
+    has_phd = any("ph.d" in str(d).lower() or "phd" in str(d).lower() or "doctor" in str(d).lower() for d in degrees)
+    salutation = f"Dr. {last_name}" if has_phd else f"Candidate {last_name}"
+
+    missing_list = [s for s in (missing_skills or []) if s.strip()]
+    missing_str = ", ".join(missing_list[:2]) if missing_list else "core curriculum design"
+
+    q1 = (
+        f"{salutation}, your research background shows notable scholarly contributions. How do you plan to "
+        f"translate your established research agenda into competitive external grant funding and peer-reviewed "
+        f"publications aligned with our department's priorities in {job_title}?"
+    )
+    q2 = (
+        f"In looking at our departmental curriculum requirements and your background (notably addressing {missing_str}), "
+        f"how would you structure your pedagogy, course assessments, and student project mentorship to deliver effective undergraduate instruction?"
+    )
+    q3 = (
+        f"Faculty search committees value departmental stewardship, ABET accreditation readiness, and collegiate service. "
+        f"What experiences or strategies would you bring to facilitate curriculum development, lab oversight, and student advising?"
+    )
+    return [q1, q2, q3]
+
+
 # --- Agent 4: Scoring & Synthesis Agent ---
 def scoring_synthesis_node(state: MultiAgentScreeningState) -> Dict[str, Any]:
-    """Agent 4: Calibrates the match score and provides an executive summary."""
+    """Agent 4: Calibrates the match score, sub-scores, rank, questions, and provides an executive summary."""
     logger.info("Agent 4 (Scoring & Synthesis Agent) finalizing assessment...")
     llm = get_llm()
     job_title = state.get("job_title", "")
@@ -210,24 +246,36 @@ def scoring_synthesis_node(state: MultiAgentScreeningState) -> Dict[str, Any]:
     missing = state.get("missing_skills", [])
 
     prompt = f"""You are the Scoring & Synthesis Agent for university faculty recruitment.
-Review the candidate evaluation and formulate an overall match score (0 to 100) and an objective summary explanation.
+Review the candidate evaluation and formulate an overall match score (0 to 100), three-pillar sub-scores (teachingScore, researchScore, domainScore), recommended rank, 3 tailored search committee probing interview questions, and an objective summary explanation.
 
 Position: {job_title}
 Candidate: {profile.get('name', 'Applicant')}
+Degrees: {[e.get('degree') for e in profile.get('education', [])]}
 Matched Skills: {matched}
 Missing Skills: {missing}
 Evidence Assessments:
 {json.dumps(evidence, ensure_ascii=False)}
 
 Scoring Guidelines:
-- 85-100: Exceptional candidate meeting all mandatory qualifications with strong evidence.
-- 70-84: Solid candidate meeting most qualifications, minor gaps.
-- 50-69: Moderate match, some key requirements absent.
-- 0-49: Candidate lacks primary prerequisites.
+- matchScore: Overall calibrated match (0-100).
+- teachingScore: Instructional competence, pedagogical experience, course delivery (0-100).
+- researchScore: Research output, peer-reviewed publications, grants, terminal degree rigor (0-100).
+- domainScore: Alignment with core department curriculum and software engineering discipline (0-100).
+- recommendedRank: e.g. "Associate Professor", "Assistant Professor (Tenure-Track)", or "Visiting / Adjunct Lecturer".
+- committeeQuestions: Exactly 3 tailored, probing interview questions for the academic hiring committee addressing research translation, teaching philosophy, or discipline gaps.
 
 Return a JSON object:
 {{
   "matchScore": 85.0,
+  "teachingScore": 80.0,
+  "researchScore": 90.0,
+  "domainScore": 85.0,
+  "recommendedRank": "Associate Professor",
+  "committeeQuestions": [
+    "Specific question 1 probing candidate's research alignment or department curriculum",
+    "Specific question 2 probing teaching methodology or student mentoring",
+    "Specific question 3 probing grant funding, ABET accreditation, or departmental service"
+  ],
   "explanation": "2-3 sentences explaining why candidate received this score based on qualifications and evidence."
 }}
 """
@@ -235,19 +283,48 @@ Return a JSON object:
         response = llm.invoke(prompt)
         parsed = json.loads(response.content)
         score = float(parsed.get("matchScore", 75.0))
-        # Clamp score between 0 and 100
         score = max(0.0, min(100.0, score))
         explanation = parsed.get("explanation", "Screening completed by AI agents.")
+
+        teaching_score = float(parsed.get("teachingScore", round(score * 0.9, 1)))
+        research_score = float(parsed.get("researchScore", round(score, 1)))
+        domain_score = float(parsed.get("domainScore", round(score * 0.95, 1)))
+
+        raw_questions = parsed.get("committeeQuestions")
+        if isinstance(raw_questions, list) and len(raw_questions) >= 2 and all(isinstance(q, str) and len(q.strip()) > 10 for q in raw_questions):
+            committee_questions = [q.strip() for q in raw_questions[:3]]
+        else:
+            committee_questions = generate_committee_questions(profile, job_title, missing, evidence)
+
+        rec_rank = parsed.get("recommendedRank") or (
+            job_title if score >= 80.0 else "Assistant Professor (Tenure-Track)"
+        )
+
         return {
             "match_score": score,
             "explanation": explanation,
+            "academic_breakdown": {
+                "teachingScore": round(teaching_score, 1),
+                "researchScore": round(research_score, 1),
+                "domainScore": round(domain_score, 1),
+            },
+            "committee_questions": committee_questions,
+            "recommended_rank": rec_rank,
             "status": "COMPLETED",
         }
     except Exception as exc:
         logger.warning("Scoring synthesis fallback: %s", exc)
+        fallback_questions = generate_committee_questions(profile, job_title, missing, evidence)
         return {
             "match_score": 70.0,
             "explanation": "Candidate evaluated across criteria.",
+            "academic_breakdown": {
+                "teachingScore": 70.0,
+                "researchScore": 75.0,
+                "domainScore": 65.0,
+            },
+            "committee_questions": fallback_questions,
+            "recommended_rank": "Assistant Professor (Tenure-Track)",
             "status": "COMPLETED",
         }
 
@@ -319,6 +396,23 @@ def run_multi_agent_screening(
     profile_data = final_state.get("profile") or {}
     profile_obj = ResumeProfile.model_validate(profile_data)
 
+    match_sc = final_state.get("match_score") or 70.0
+    academic_breakdown_data = final_state.get("academic_breakdown") or {}
+    academic_breakdown_obj = AcademicBreakdown(
+        teachingScore=float(academic_breakdown_data.get("teachingScore", round(match_sc * 0.9, 1))),
+        researchScore=float(academic_breakdown_data.get("researchScore", round(match_sc, 1))),
+        domainScore=float(academic_breakdown_data.get("domainScore", round(match_sc * 0.95, 1))),
+    )
+
+    questions = final_state.get("committee_questions")
+    if not questions or not isinstance(questions, list) or len(questions) == 0:
+        questions = generate_committee_questions(
+            profile=profile_data,
+            job_title=job_title,
+            missing_skills=final_state.get("missing_skills"),
+            evidence=final_state.get("evidence"),
+        )
+
     return ScreeningResult(
         status="COMPLETED",
         jobId=str(job_id),
@@ -328,4 +422,7 @@ def run_multi_agent_screening(
         evidence=evidence_objs,
         explanation=final_state.get("explanation") or "Screening completed.",
         profile=profile_obj,
+        academicBreakdown=academic_breakdown_obj,
+        committeeQuestions=questions,
+        recommendedRank=final_state.get("recommended_rank") or "Assistant Professor (Tenure-Track)",
     )

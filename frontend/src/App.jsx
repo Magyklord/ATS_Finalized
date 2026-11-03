@@ -1990,7 +1990,7 @@ function ScreeningPage() {
             >
               <span className="dossier-toggle-title">Academic Dossier & Search Committee Tools</span>
               <span className="dossier-toggle-hint">
-                {isDossierOpen ? 'Hide Reviewer Tools [-]' : 'View Sub-Score Evidence, Course Readiness & Interview Questions [+]'}
+                {isDossierOpen ? 'Hide Reviewer Tools [-]' : 'View Sub-Score Evidence & Interview Questions [+]'}
               </span>
             </button>
 
@@ -2003,13 +2003,6 @@ function ScreeningPage() {
                     onClick={() => setActiveDossierTab('subscores')}
                   >
                     Sub-Scores & Evidence
-                  </button>
-                  <button
-                    type="button"
-                    className={`dossier-tab-btn ${activeDossierTab === 'courses' ? 'active' : ''}`}
-                    onClick={() => setActiveDossierTab('courses')}
-                  >
-                    Course Teaching Readiness
                   </button>
                   <button
                     type="button"
@@ -2114,38 +2107,7 @@ function ScreeningPage() {
                     </div>
                   )}
 
-                  {/* Tab 2: Course Teaching Readiness */}
-                  {activeDossierTab === 'courses' && (
-                    <div className="courses-container">
-                      <div>
-                        <div className="course-group-title ready">Day-1 Ready to Teach:</div>
-                        <div className="skills-tags-container">
-                          {viewingResult.courseReadiness?.day1Ready && viewingResult.courseReadiness.day1Ready.length > 0 ? (
-                            viewingResult.courseReadiness.day1Ready.map((course, idx) => (
-                              <span key={idx} className="course-tag ready">{course}</span>
-                            ))
-                          ) : (
-                            <span style={{ color: '#64748b', fontSize: '12px' }}>Standard foundational undergraduate courses based on profile</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="course-group-title gap">Curriculum Development Needed / Gaps:</div>
-                        <div className="skills-tags-container">
-                          {viewingResult.courseReadiness?.curriculumGaps && viewingResult.courseReadiness.curriculumGaps.length > 0 ? (
-                            viewingResult.courseReadiness.curriculumGaps.map((course, idx) => (
-                              <span key={idx} className="course-tag gap">{course}</span>
-                            ))
-                          ) : (
-                            <span style={{ color: '#64748b', fontSize: '12px' }}>No major curriculum gaps identified</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tab 3: Search Committee Interview Pack */}
+                  {/* Tab 2: Search Committee Interview Pack */}
                   {activeDossierTab === 'questions' && (
                     <div>
                       {viewingResult.committeeQuestions && viewingResult.committeeQuestions.length > 0 ? (
